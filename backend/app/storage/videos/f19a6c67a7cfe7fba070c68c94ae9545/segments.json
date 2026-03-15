@@ -1,0 +1,53 @@
+{
+  "segments": [
+    {
+      "id": 1,
+      "title": "What is Binary Search?",
+      "narration": "Binary search is a fast way to locate a target value in a sorted list by repeatedly halving the search range.",
+      "on_screen": "Binary Search = fast, divide‑and‑conquer search",
+      "duration_sec": 5
+    },
+    {
+      "id": 2,
+      "title": "Why Sorting Matters",
+      "narration": "The algorithm only works when the data is sorted, because it relies on ordering to decide which half to discard.",
+      "on_screen": "Prerequisite: sorted array (ascending/descending)",
+      "duration_sec": 5
+    },
+    {
+      "id": 3,
+      "title": "Core Idea",
+      "narration": "We compare the target with the middle element: if equal we’re done, if smaller we search left, if larger we search right.",
+      "on_screen": "Compare target ↔ middle → left / right half",
+      "duration_sec": 6
+    },
+    {
+      "id": 4,
+      "title": "Iterative Steps",
+      "narration": "Set low to 0 and high to n‑1. While low ≤ high, compute mid, check array[mid], and adjust low or high accordingly.",
+      "on_screen": "low=0, high=n‑1; while(low≤high){mid=(low+high)/2 …}",
+      "duration_sec": 7
+    },
+    {
+      "id": 5,
+      "title": "Complexity Analysis",
+      "narration": "Binary search runs in O(log n) time, O(1) space iteratively, and O(log n) space recursively because of the call stack.",
+      "on_screen": "Time: O(log n) • Space: Iterative O(1) • Recursive O(log n)",
+      "duration_sec": 6
+    },
+    {
+      "id": 6,
+      "title": "Example Walkthrough",
+      "narration": "In [2,4,6,8,10,12], searching for 8: first mid=6 (index2) → target larger, search right half; next mid=8 (index3) → found.",
+      "on_screen": "Array: [2,4,6,8,10,12] • Target=8 • Steps: 6 → 8 (found)",
+      "duration_sec": 8
+    },
+    {
+      "id": 7,
+      "title": "Where It’s Used",
+      "narration": "Binary search powers dictionary lookups, database indexing, and helps find insertion points in many algorithms.",
+      "on_screen": "Applications: databases, dictionaries, algorithmic helpers",
+      "duration_sec": 5
+    }
+  ]
+}

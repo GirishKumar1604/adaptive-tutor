@@ -1,0 +1,95 @@
+[Source: binary search.txt | Chunk: 3]
+Binary Search
+Definition
+
+Binary search is an efficient searching algorithm used to find the position of a target value within a sorted array or list. It works by repeatedly dividing the search interval in half.
+
+Prerequisite
+
+The data must be sorted (ascending or descending).
+
+Basic Idea
+
+Compare the target value with the middle element of the array.
+
+If the target equals the middle element → search successful.
+
+If the target is less than the middle element → search the left half.
+
+If the target is greater than the middle element → search the right half.
+
+Repeat until the element is found or the search range becomes empty.
+
+Algorithm (Iterative Approach)
+
+Set low = 0, high = n − 1
+
+While low ≤ high:
+
+mid = (low + high) / 2
+
+If array[mid] == target → return index
+
+Else if array[mid] < target → low = mid + 1
+
+Else → high = mid − 1
+
+If not found → return -1
+
+Time Complexity
+
+---
+
+[Source: binary search.txt | Chunk: 4]
+urn index
+
+Else if array[mid] < target → low = mid + 1
+
+Else → high = mid − 1
+
+If not found → return -1
+
+Time Complexity
+
+Best Case: O(1) (middle element is the target)
+
+Average Case: O(log n)
+
+Worst Case: O(log n)
+
+Space Complexity
+
+Iterative: O(1)
+
+Recursive: O(log n) (due to recursion stack)
+
+Advantages
+
+Much faster than linear search for large datasets
+
+Efficient and scalable
+
+Reduces comparisons significantly
+
+Disadvantages
+
+Works only on sorted data
+
+Not suitable for linked lists (no direct access to middle element)
+
+Applications
+
+Searching in large databases
+
+Dictionary and phonebook lookups
+
+Used internally in many algorithms (e.g., finding insertion points)
+
+Example
+
+Array: [2, 4, 6, 8, 10, 12]
+Target: 8
+
+Middle element = 6 → target is larger
+
+Search right half → middle becomes 8 → found

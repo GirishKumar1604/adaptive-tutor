@@ -1,0 +1,17 @@
+[1] What is a Trigonometry Table?
+A trigonometry table lists the values of sine, cosine, and tangent for key angles. It lets you look up ratios without a calculator. We'll see why these tables are useful for solving right‑triangle problems.
+
+[2] Common Angle Values
+Here are the sine, cosine, and tangent for 0°, 30°, 45°, 60°, and 90°. These are the angles you’ll encounter most often, and their values are easy to remember.
+
+[3] Using the Table in a Right Triangle
+To find a missing side, identify the angle you know, then read the appropriate ratio from the table. Multiply or divide as needed to solve for the unknown length.
+
+[4] Example: 30‑60‑90 Triangle
+Suppose the hypotenuse is 10 units. Using the 30° sine (½), the opposite side is 10 × ½ = 5. The adjacent side follows from cosine (√3/2), giving 10 × √3/2 ≈ 8.66.
+
+[5] Example: 45‑45‑90 Triangle
+If one leg measures 7 units, the hypotenuse equals leg ÷ cos45°, which is 7 ÷ (√2/2) ≈ 9.9. Both legs are equal, so the other leg is also 7.
+
+[6] Tips for Quick Use
+Memorize the five key angles and their ratios. When a problem uses a non‑standard angle, estimate by interpolating between the nearest values. Practice with a few triangles each day to build speed.

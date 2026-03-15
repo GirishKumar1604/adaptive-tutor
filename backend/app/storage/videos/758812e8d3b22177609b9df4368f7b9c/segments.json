@@ -1,0 +1,46 @@
+{
+  "segments": [
+    {
+      "id": 1,
+      "title": "What is Binary Search?",
+      "narration": "Binary search is a fast way to find an item in a sorted list by repeatedly cutting the search space in half. Instead of checking each element, we compare the target with the middle element and decide which half to keep. This reduces the number of checks dramatically.",
+      "on_screen": "Binary Search = repeatedly halve a sorted list to locate a target",
+      "duration_sec": 5
+    },
+    {
+      "id": 2,
+      "title": "Prerequisites",
+      "narration": "For binary search to work, the data must be sorted in ascending (or descending) order, and we need random access to any index, like an array. Without sorting, halving the list gives no guarantee of discarding the wrong half.",
+      "on_screen": "Requirements: Sorted array + random access (e.g., array)",
+      "duration_sec": 5
+    },
+    {
+      "id": 3,
+      "title": "Algorithm Steps",
+      "narration": "We start with two pointers, low at the start and high at the end. While low ≤ high, we compute mid = ⌊(low+high)/2⌋. If the middle element equals the target, we’re done. If the target is smaller, we move high to mid‑1; otherwise, we move low to mid+1. The loop repeats until the target is found or the range is empty.",
+      "on_screen": "low, high → mid = (low+high)/2\nif A[mid]==target → found\nelse if target<A[mid] → high=mid-1\nelse low=mid+1",
+      "duration_sec": 8
+    },
+    {
+      "id": 4,
+      "title": "Worked Example",
+      "narration": "Consider the sorted array [2,4,7,10,14,18,21] and target 14. low=0, high=6, mid=3 (value 10). 14>10, so low becomes 4. Next mid=5 (value 18). 14<18, so high becomes 4. Now low=high=4, mid=4, value 14 – found! Only three comparisons were needed.",
+      "on_screen": "Array: 2 4 7 10 14 18 21\nTarget=14\nSteps → mid indices: 3 → 5 → 4 (found)",
+      "duration_sec": 7
+    },
+    {
+      "id": 5,
+      "title": "Time & Space Complexity",
+      "narration": "Each iteration halves the remaining range, so the number of steps grows with log₂ n, giving O(log n) time. The algorithm uses only a few integer variables, so its extra space is O(1). This makes binary search much faster than linear search for large datasets.",
+      "on_screen": "Time: O(log n)\nSpace: O(1)",
+      "duration_sec": 5
+    },
+    {
+      "id": 6,
+      "title": "Pitfalls & Variants",
+      "narration": "Common mistakes include forgetting to sort the data, using integer overflow when computing mid, or off‑by‑one errors in the loop condition. Variants like lower‑bound and upper‑bound searches adjust the comparison to find the first or last occurrence of a value.",
+      "on_screen": "Watch out: unsorted data, overflow, off‑by‑one\nVariants: lower‑bound, upper‑bound",
+      "duration_sec": 6
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+[
+  {
+    "type": "quiz_submit",
+    "job_id": "f19a6c67a7cfe7fba070c68c94ae9545",
+    "topic": "Binary Search",
+    "summary": {
+      "total_questions": 1,
+      "correct": 0,
+      "incorrect": 1,
+      "score_percent": 0.0
+    },
+    "adaptive": {
+      "avg_mastery": 0.38,
+      "difficulty_level": "EASY",
+      "weakest_skills": [
+        "Binary Search"
+      ]
+    }
+  }
+]

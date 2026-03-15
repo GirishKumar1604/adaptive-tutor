@@ -1,0 +1,46 @@
+{
+  "segments": [
+    {
+      "id": 1,
+      "title": "What is Algebra?",
+      "narration": "Welcome! In algebra we use symbols called variables to represent numbers we don't know yet. Think of x as a placeholder for any value. We'll see how to work with these symbols to solve problems.",
+      "on_screen": "Algebra = using variables (e.g., x) to represent unknown numbers.",
+      "duration_sec": 5
+    },
+    {
+      "id": 2,
+      "title": "Algebraic Expressions",
+      "narration": "An algebraic expression combines numbers, variables, and operations. For example, 3x + 2 adds three times the unknown to a constant. We'll learn how to read and write these expressions.",
+      "on_screen": "Expression example: 3x + 2",
+      "duration_sec": 5
+    },
+    {
+      "id": 3,
+      "title": "Evaluating Expressions",
+      "narration": "To evaluate, substitute a value for the variable. If x = 4, then 3x + 2 becomes 3·4 + 2 = 14. Practice plugging numbers into expressions.",
+      "on_screen": "If x=4, 3x+2 = 14",
+      "duration_sec": 4
+    },
+    {
+      "id": 4,
+      "title": "Introducing Equations",
+      "narration": "An equation states that two expressions are equal, like 2x = 10. Solving means finding the value of the variable that makes the statement true.",
+      "on_screen": "Equation example: 2x = 10",
+      "duration_sec": 5
+    },
+    {
+      "id": 5,
+      "title": "Solving Linear Equations",
+      "narration": "To solve 2x = 10, divide both sides by 2, giving x = 5. The same steps work for more complex equations, such as 3x + 1 = 10.",
+      "on_screen": "Solve: 2x = 10 → x = 5",
+      "duration_sec": 5
+    },
+    {
+      "id": 6,
+      "title": "Real‑World Example",
+      "narration": "If a garden costs $3 per square meter and the total cost is $27, how many square meters were planted? Set up 3x = 27, solve for x = 9 meters. This shows algebra in everyday life.",
+      "on_screen": "3x = 27 → x = 9 (meters of garden)",
+      "duration_sec": 6
+    }
+  ]
+}

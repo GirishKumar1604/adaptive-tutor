@@ -1,0 +1,53 @@
+{
+  "segments": [
+    {
+      "id": 1,
+      "title": "What is Photosynthesis?",
+      "narration": "Photosynthesis is the process plants use to turn sunlight into chemical energy. It powers growth and produces the oxygen we breathe. Think of it as a solar-powered kitchen inside leaves.",
+      "on_screen": "Photosynthesis = Sunlight → Food + O₂",
+      "duration_sec": 5
+    },
+    {
+      "id": 2,
+      "title": "The Two Stages",
+      "narration": "Photosynthesis occurs in two main stages: the light‑dependent reactions and the Calvin cycle. The first captures light energy; the second builds sugar molecules.",
+      "on_screen": "Stage 1: Light‑dependent | Stage 2: Calvin Cycle",
+      "duration_sec": 6
+    },
+    {
+      "id": 3,
+      "title": "Chlorophyll Captures Light",
+      "narration": "Chlorophyll pigments in the thylakoid membranes absorb blue and red light, exciting electrons. These high‑energy electrons start the energy‑conversion chain.",
+      "on_screen": "Chlorophyll absorbs blue/red → excites electrons",
+      "duration_sec": 5
+    },
+    {
+      "id": 4,
+      "title": "Water Splitting & Oxygen",
+      "narration": "The excited electrons are replaced by splitting water molecules. This releases oxygen as a by‑product and provides protons and electrons for the next steps.",
+      "on_screen": "2 H₂O → 4 H⁺ + 4 e⁻ + O₂",
+      "duration_sec": 5
+    },
+    {
+      "id": 5,
+      "title": "Electron Transport Chain",
+      "narration": "Electrons travel through a series of proteins, releasing energy that pumps protons into the thylakoid space. The resulting gradient powers ATP synthase to make ATP.",
+      "on_screen": "ETC creates H⁺ gradient → ATP synthase makes ATP",
+      "duration_sec": 6
+    },
+    {
+      "id": 6,
+      "title": "Calvin Cycle (Carbon Fixation)",
+      "narration": "Using ATP and NADPH from the light reactions, the Calvin cycle fixes CO₂ into glucose. The cycle runs three times to produce one six‑carbon sugar.",
+      "on_screen": "CO₂ + ATP + NADPH → C₆H₁₂O₆ (glucose)",
+      "duration_sec": 7
+    },
+    {
+      "id": 7,
+      "title": "Why It Matters",
+      "narration": "Overall, photosynthesis stores solar energy in sugar and releases oxygen, supporting almost all life on Earth. The simplified equation shows the inputs and outputs clearly.",
+      "on_screen": "6 CO₂ + 6 H₂O + light → C₆H₁₂O₆ + 6 O₂",
+      "duration_sec": 5
+    }
+  ]
+}

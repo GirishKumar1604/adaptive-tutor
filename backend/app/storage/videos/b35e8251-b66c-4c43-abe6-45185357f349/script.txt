@@ -1,0 +1,20 @@
+[1] What is Photosynthesis?
+Photosynthesis is the process plants use to turn sunlight into chemical energy. It powers growth and produces the oxygen we breathe. Think of it as a solar-powered kitchen inside leaves.
+
+[2] The Two Stages
+Photosynthesis occurs in two main stages: the light‑dependent reactions and the Calvin cycle. The first captures light energy; the second builds sugar molecules.
+
+[3] Chlorophyll Captures Light
+Chlorophyll pigments in the thylakoid membranes absorb blue and red light, exciting electrons. These high‑energy electrons start the energy‑conversion chain.
+
+[4] Water Splitting & Oxygen
+The excited electrons are replaced by splitting water molecules. This releases oxygen as a by‑product and provides protons and electrons for the next steps.
+
+[5] Electron Transport Chain
+Electrons travel through a series of proteins, releasing energy that pumps protons into the thylakoid space. The resulting gradient powers ATP synthase to make ATP.
+
+[6] Calvin Cycle (Carbon Fixation)
+Using ATP and NADPH from the light reactions, the Calvin cycle fixes CO₂ into glucose. The cycle runs three times to produce one six‑carbon sugar.
+
+[7] Why It Matters
+Overall, photosynthesis stores solar energy in sugar and releases oxygen, supporting almost all life on Earth. The simplified equation shows the inputs and outputs clearly.

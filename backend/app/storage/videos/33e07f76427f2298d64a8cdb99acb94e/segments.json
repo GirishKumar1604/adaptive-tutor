@@ -1,0 +1,46 @@
+{
+  "segments": [
+    {
+      "id": 1,
+      "title": "What is Photosynthesis?",
+      "narration": "Photosynthesis is the process plants use to turn sunlight into chemical energy. It captures light and combines carbon dioxide with water to make sugars, releasing oxygen as a by‑product. This is the foundation of most life on Earth.",
+      "on_screen": "Photosynthesis = Sunlight + CO₂ + H₂O → Glucose + O₂",
+      "duration_sec": 6
+    },
+    {
+      "id": 2,
+      "title": "Light‑Dependent Reactions",
+      "narration": "The first stage occurs in the thylakoid membranes where chlorophyll absorbs light. This energy splits water molecules, releasing oxygen and creating ATP and NADPH, the energy carriers for the next stage.",
+      "on_screen": "Light → H₂O → O₂ + ATP + NADPH (thylakoid)",
+      "duration_sec": 7
+    },
+    {
+      "id": 3,
+      "title": "Calvin Cycle (Light‑Independent)",
+      "narration": "Using ATP and NADPH, the Calvin cycle fixes carbon dioxide into glucose in the stroma of the chloroplast. It runs in a series of steps that regenerate the starting molecule, RuBP.",
+      "on_screen": "CO₂ + ATP + NADPH → Glucose (Stroma)",
+      "duration_sec": 7
+    },
+    {
+      "id": 4,
+      "title": "Chlorophyll and Pigments",
+      "narration": "Chlorophyll gives leaves their green color and captures the blue‑red wavelengths of light most efficiently. Accessory pigments like carotenoids expand the range of usable light.",
+      "on_screen": "Chlorophyll: absorbs blue/red, reflects green; Carotenoids: absorb blue",
+      "duration_sec": 6
+    },
+    {
+      "id": 5,
+      "title": "Example: A Leaf in Action",
+      "narration": "Look at a cross‑section of a leaf: the upper epidermis lets light in, the palisade mesophyll houses many chloroplasts, and stomata regulate gas exchange. Together they enable the whole photosynthetic process.",
+      "on_screen": "Leaf cross‑section: epidermis → palisade mesophyll (chloroplasts) → stomata",
+      "duration_sec": 5
+    },
+    {
+      "id": 6,
+      "title": "Why It Matters",
+      "narration": "Photosynthesis supplies the food we eat, the oxygen we breathe, and the energy stored in fossil fuels. Understanding it helps us address climate change and improve crop yields.",
+      "on_screen": "Food, O₂, Energy → essential for life & climate",
+      "duration_sec": 6
+    }
+  ]
+}

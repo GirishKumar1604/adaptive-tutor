@@ -1,0 +1,56 @@
+#Command to run the docker container
+docker compose up --pull never
+
+#commands to start Learning
+curl -X POST "http://localhost:8000/learn/start" ^
+ -H "Content-Type: application/json" ^
+ -d "{\"topic\":\"Photosynthesis\",\"user_goal\":\"Basics with examples\",\"preferred_language\":\"English\",\"quality\":\"low\"}"
+
+#commands to check status of Learning
+curl "http://localhost:8000/learn/status/<TASK_ID_FROM_ABOVE>"
+
+#commands to start Quiz
+curl -X POST "http://localhost:8000/quiz/start" ^
+ -H "Content-Type: application/json" ^
+ -d "{\"job_id\":\"<JOB_ID>\",\"topic\":\"Photosynthesis\",\"preferred_language\":\"English\",\"num_questions\":8}"
+
+#commands to check quiz status
+curl "http://localhost:8000/quiz/status/<QUIZ_TASK_ID>"
+
+
+curl "http://localhost:8000/quiz/get/<quiz_job_id>"
+
+#commands to submit Quiz
+curl -X POST "http://localhost:8000/quiz/submit" ^
+ -H "Content-Type: application/json" ^
+ -d "{\"job_id\":\"<JOB_ID>\",\"topic\":\"Photosynthesis\",\"answers\":[{\"question_id\":\"Q1\",\"answer\":\"A\"},{\"question_id\":\"Q2\",\"answer\":\"Carbon dioxide\"}]}"
+
+
+#quiz commands same as above but single liner
+curl -X POST "http://localhost:8000/quiz/start" -H "Content-Type: application/json" -d "{\"job_id\":\"<JOB_ID>\",\"topic\":\"Photosynthesis\",\"preferred_language\":\"English\",\"num_questions\":8}"
+
+curl "http://localhost:8000/quiz/status/<QUIZ_TASK_ID>"
+
+curl "http://localhost:8000/quiz/get/<JOB_ID>"
+
+curl "http://localhost:8000/quiz/get/<JOB_ID>"
+
+#Command to start rag upload
+curl -X POST "http://localhost:8000/rag/upload" ^
+  -F "files=@D:\GK\adaptive-tutor\sample.txt"  #replace with file path
+
+#session id
+curl -X POST "http://localhost:8000/adaptive/start" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"topic\":\"Binary Search\",\"preferred_language\":\"English\",\"rag_collection_id\":null,\"quality\":\"low\"}"
+
+#submit quiz with session id
+curl -X POST "http://localhost:8000/quiz/submit" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"session_id\":\"<SESSION_ID>\",\"job_id\":\"<JOB_ID>\",\"topic\":\"Binary Search\",\"preferred_language\":\"English\",\"answers\":[{\"question_id\":\"Q1\",\"answer\":\"A\"}]}"
+
+#to view updated adaptive state
+curl "http://localhost:8000/adaptive/state/<SESSION_ID>"
+
+
+

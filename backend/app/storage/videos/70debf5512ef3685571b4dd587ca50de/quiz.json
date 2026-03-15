@@ -1,0 +1,154 @@
+{
+  "topic": "algebra",
+  "questions": [
+    {
+      "id": "Q1",
+      "type": "mcq",
+      "difficulty": "EASY",
+      "skill": "definition",
+      "prompt": "Which of the following best defines algebra?",
+      "options": [
+        {
+          "id": "A",
+          "text": "The study of numbers only"
+        },
+        {
+          "id": "B",
+          "text": "Using variables to represent unknown numbers"
+        },
+        {
+          "id": "C",
+          "text": "A branch of geometry"
+        },
+        {
+          "id": "D",
+          "text": "Calculating percentages"
+        }
+      ]
+    },
+    {
+      "id": "Q2",
+      "type": "mcq",
+      "difficulty": "EASY",
+      "skill": "application",
+      "prompt": "Identify the algebraic expression from the choices below.",
+      "options": [
+        {
+          "id": "A",
+          "text": "2 + 3 = 5"
+        },
+        {
+          "id": "B",
+          "text": "x + 7"
+        },
+        {
+          "id": "C",
+          "text": "5 > 2"
+        },
+        {
+          "id": "D",
+          "text": "(4,5)"
+        }
+      ]
+    },
+    {
+      "id": "Q3",
+      "type": "short",
+      "difficulty": "MEDIUM",
+      "skill": "application",
+      "prompt": "If x = 4, what is the value of 3x + 2?",
+      "options": null
+    },
+    {
+      "id": "Q4",
+      "type": "mcq",
+      "difficulty": "EASY",
+      "skill": "definition",
+      "prompt": "Which statement correctly distinguishes an equation from an expression?",
+      "options": [
+        {
+          "id": "A",
+          "text": "An equation contains an equals sign, an expression does not"
+        },
+        {
+          "id": "B",
+          "text": "An expression always has variables, an equation never does"
+        },
+        {
+          "id": "C",
+          "text": "Both are the same thing"
+        },
+        {
+          "id": "D",
+          "text": "An equation is only used in geometry"
+        }
+      ]
+    },
+    {
+      "id": "Q5",
+      "type": "short",
+      "difficulty": "EASY",
+      "skill": "application",
+      "prompt": "Solve for x: 2x = 10",
+      "options": null
+    },
+    {
+      "id": "Q6",
+      "type": "mcq",
+      "difficulty": "MEDIUM",
+      "skill": "application",
+      "prompt": "What is the solution to the equation 3x = 27?",
+      "options": [
+        {
+          "id": "A",
+          "text": "x = 6"
+        },
+        {
+          "id": "B",
+          "text": "x = 9"
+        },
+        {
+          "id": "C",
+          "text": "x = 12"
+        },
+        {
+          "id": "D",
+          "text": "x = 3"
+        }
+      ]
+    },
+    {
+      "id": "Q7",
+      "type": "short",
+      "difficulty": "HARD",
+      "skill": "application",
+      "prompt": "A garden needs 3 meters of fencing per side. If the total length of fencing used is 27 meters, how many meters long is each side?",
+      "options": null
+    },
+    {
+      "id": "Q8",
+      "type": "mcq",
+      "difficulty": "EASY",
+      "skill": "intuition",
+      "prompt": "In algebra, what does the variable 'x' typically represent?",
+      "options": [
+        {
+          "id": "A",
+          "text": "A known constant"
+        },
+        {
+          "id": "B",
+          "text": "An unknown value to be found"
+        },
+        {
+          "id": "C",
+          "text": "The answer to a problem"
+        },
+        {
+          "id": "D",
+          "text": "A fixed number like 1"
+        }
+      ]
+    }
+  ]
+}

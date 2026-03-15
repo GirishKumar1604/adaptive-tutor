@@ -1,0 +1,46 @@
+{
+  "segments": [
+    {
+      "id": 1,
+      "title": "What is Photosynthesis?",
+      "narration": "Photosynthesis is the process plants use to turn light energy into chemical energy. It powers plant growth and produces the oxygen we breathe. In simple terms, plants act like solar panels, converting sunlight into food.",
+      "on_screen": "Photosynthesis = Light energy → chemical energy (glucose) + O₂",
+      "duration_sec": 5
+    },
+    {
+      "id": 2,
+      "title": "Light‑Dependent Reactions",
+      "narration": "The first stage happens in the thylakoid membranes of chloroplasts. Sunlight excites chlorophyll, splitting water molecules and releasing oxygen while storing energy in ATP and NADPH.",
+      "on_screen": "Light → H₂O → O₂ + ATP + NADPH (thylakoid)",
+      "duration_sec": 6
+    },
+    {
+      "id": 3,
+      "title": "Calvin Cycle (Light‑Independent)",
+      "narration": "Using the ATP and NADPH from the first stage, the Calvin cycle fixes carbon dioxide into glucose. This occurs in the stroma and does not need direct light, but relies on the earlier energy capture.",
+      "on_screen": "CO₂ + ATP + NADPH → Glucose (stroma)",
+      "duration_sec": 6
+    },
+    {
+      "id": 4,
+      "title": "Chlorophyll and Pigments",
+      "narration": "Chlorophyll gives leaves their green color and absorbs mainly blue and red light. Accessory pigments like carotenoids capture additional wavelengths, expanding the plant's light palette.",
+      "on_screen": "Chlorophyll: absorbs blue/red, reflects green; carotenoids: absorb blue/green",
+      "duration_sec": 5
+    },
+    {
+      "id": 5,
+      "title": "Example: A Leaf in Sunlight",
+      "narration": "Imagine a sunny leaf. Light hits chlorophyll, water is drawn up from the roots, and carbon dioxide enters through stomata. Within minutes, the leaf is producing glucose and releasing oxygen.",
+      "on_screen": "Sunlight → leaf → H₂O + CO₂ → glucose + O₂",
+      "duration_sec": 5
+    },
+    {
+      "id": 6,
+      "title": "Why It Matters",
+      "narration": "Photosynthesis fuels the entire food chain, provides the oxygen we need, and captures carbon dioxide, helping regulate Earth’s climate. Understanding it is key to agriculture and renewable energy research.",
+      "on_screen": "Food, O₂, climate regulation, bioenergy",
+      "duration_sec": 5
+    }
+  ]
+}

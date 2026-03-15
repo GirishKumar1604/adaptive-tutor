@@ -1,0 +1,53 @@
+{
+  "segments": [
+    {
+      "id": 1,
+      "title": "What is Photosynthesis?",
+      "narration": "Photosynthesis is the process plants use to turn sunlight into chemical energy. It combines carbon dioxide and water to produce glucose and oxygen. This reaction powers plant growth and fuels the food chain.",
+      "on_screen": "Photosynthesis = Sunlight + CO₂ + H₂O → Glucose + O₂",
+      "duration_sec": 5
+    },
+    {
+      "id": 2,
+      "title": "Light‑Dependent Reactions",
+      "narration": "In the thylakoid membranes, sunlight excites chlorophyll electrons. This energy splits water molecules, releasing oxygen and creating ATP and NADPH, the energy carriers for the next stage.",
+      "on_screen": "Light → H₂O → O₂ + ATP + NADPH",
+      "duration_sec": 6
+    },
+    {
+      "id": 3,
+      "title": "Calvin Cycle (Light‑Independent)",
+      "narration": "Using ATP and NADPH, the Calvin cycle fixes carbon dioxide into a three‑carbon sugar called G3P. Two G3P molecules combine to form one glucose molecule.",
+      "on_screen": "CO₂ + ATP + NADPH → G3P → Glucose",
+      "duration_sec": 6
+    },
+    {
+      "id": 4,
+      "title": "Chlorophyll’s Role",
+      "narration": "Chlorophyll pigments absorb blue and red light, funneling the energy to reaction centers. This pigment gives leaves their green color and is essential for capturing solar energy.",
+      "on_screen": "Chlorophyll absorbs blue/red light → energy transfer",
+      "duration_sec": 5
+    },
+    {
+      "id": 5,
+      "title": "Example: Leaf Cell",
+      "narration": "Inside a leaf cell, chloroplasts house the thylakoids and stroma where these reactions occur. The produced glucose fuels the plant, while oxygen exits through stomata.",
+      "on_screen": "Leaf cell → chloroplasts → glucose + O₂ release",
+      "duration_sec": 5
+    },
+    {
+      "id": 6,
+      "title": "Example: Algae in Water",
+      "narration": "Algae perform photosynthesis in aquatic environments, providing oxygen for fish and forming the base of many food webs. Their rapid growth illustrates the efficiency of the process.",
+      "on_screen": "Algae → oxygen for water life + food source",
+      "duration_sec": 5
+    },
+    {
+      "id": 7,
+      "title": "Why It Matters",
+      "narration": "Photosynthesis supplies the oxygen we breathe and the food we eat. Understanding it helps us appreciate ecosystems and develop sustainable energy solutions.",
+      "on_screen": "Photosynthesis = life support + renewable energy potential",
+      "duration_sec": 5
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "segments": [
+    {
+      "id": 1,
+      "title": "What is Photosynthesis?",
+      "narration": "Photosynthesis is the process plants use to turn light energy into chemical energy. It captures carbon dioxide and water, producing glucose and oxygen. This reaction powers plant growth and feeds the food chain.",
+      "on_screen": "Photosynthesis = Light + CO₂ + H₂O → Glucose + O₂",
+      "duration_sec": 6
+    },
+    {
+      "id": 2,
+      "title": "Light‑Dependent Reactions",
+      "narration": "In the thylakoid membranes, sunlight excites chlorophyll electrons. This energy splits water molecules, releasing oxygen and creating ATP and NADPH, the energy carriers for the next stage.",
+      "on_screen": "Sunlight → H₂O → O₂ + ATP + NADPH",
+      "duration_sec": 7
+    },
+    {
+      "id": 3,
+      "title": "Calvin Cycle (Light‑Independent)",
+      "narration": "Using ATP and NADPH, the Calvin cycle fixes carbon dioxide into a three‑carbon sugar called G3P, which later becomes glucose. This step occurs in the stroma of the chloroplast.",
+      "on_screen": "CO₂ + ATP + NADPH → G3P → Glucose",
+      "duration_sec": 7
+    },
+    {
+      "id": 4,
+      "title": "Chlorophyll and Pigments",
+      "narration": "Chlorophyll absorbs mainly blue and red wavelengths, reflecting green, which gives leaves their color. Accessory pigments like carotenoids broaden the range of usable light.",
+      "on_screen": "Chlorophyll: absorbs blue/red, reflects green",
+      "duration_sec": 5
+    },
+    {
+      "id": 5,
+      "title": "Example: A Sunlit Leaf",
+      "narration": "When a leaf is exposed to bright sunlight, water moves up from the roots, CO₂ enters through stomata, and the leaf produces glucose that fuels the whole plant. Oxygen is released back into the air.",
+      "on_screen": "Leaf + Sun → H₂O + CO₂ → Glucose + O₂",
+      "duration_sec": 6
+    },
+    {
+      "id": 6,
+      "title": "Why It Matters",
+      "narration": "Photosynthesis supplies the oxygen we breathe and the food we eat. It also captures carbon, helping regulate Earth’s climate. Understanding it is key to agriculture and renewable energy research.",
+      "on_screen": "O₂, Food, Carbon Capture → Life & Climate",
+      "duration_sec": 8
+    }
+  ]
+}

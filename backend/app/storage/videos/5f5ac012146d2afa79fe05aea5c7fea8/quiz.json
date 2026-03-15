@@ -1,0 +1,171 @@
+{
+  "topic": "Photosynthesis",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "difficulty": "EASY",
+      "skill": "definition",
+      "prompt": "What is the overall balanced chemical equation for photosynthesis?",
+      "options": [
+        {
+          "id": "A",
+          "text": "6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂"
+        },
+        {
+          "id": "B",
+          "text": "C₆H₁₂O₆ + 6O₂ → 6CO₂ + 6H₂O"
+        },
+        {
+          "id": "C",
+          "text": "CO₂ + O₂ → C₆H₁₂O₆ + H₂O"
+        },
+        {
+          "id": "D",
+          "text": "6O₂ + C₆H₁₂O₆ → 6CO₂ + 6H₂O"
+        }
+      ]
+    },
+    {
+      "id": "q2",
+      "type": "mcq",
+      "difficulty": "EASY",
+      "skill": "intuition",
+      "prompt": "Which pigment primarily captures light energy for photosynthesis?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Chlorophyll a"
+        },
+        {
+          "id": "B",
+          "text": "Carotene"
+        },
+        {
+          "id": "C",
+          "text": "Xanthophyll"
+        },
+        {
+          "id": "D",
+          "text": "Anthocyanin"
+        }
+      ]
+    },
+    {
+      "id": "q3",
+      "type": "mcq",
+      "difficulty": "MEDIUM",
+      "skill": "application",
+      "prompt": "In the light‑dependent reactions, water is split to produce which molecule that is later used in the Calvin cycle?",
+      "options": [
+        {
+          "id": "A",
+          "text": "NADPH"
+        },
+        {
+          "id": "B",
+          "text": "ATP"
+        },
+        {
+          "id": "C",
+          "text": "O₂"
+        },
+        {
+          "id": "D",
+          "text": "CO₂"
+        }
+      ]
+    },
+    {
+      "id": "q4",
+      "type": "short",
+      "difficulty": "EASY",
+      "skill": "prereq",
+      "prompt": "Before photosynthesis can occur, plants must obtain which gas from the atmosphere?",
+      "options": null
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "difficulty": "MEDIUM",
+      "skill": "definition",
+      "prompt": "What is the main purpose of the Calvin cycle?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Convert light energy into chemical energy"
+        },
+        {
+          "id": "B",
+          "text": "Fix carbon dioxide into organic molecules"
+        },
+        {
+          "id": "C",
+          "text": "Produce oxygen"
+        },
+        {
+          "id": "D",
+          "text": "Split water molecules"
+        }
+      ]
+    },
+    {
+      "id": "q6",
+      "type": "mcq",
+      "difficulty": "HARD",
+      "skill": "application",
+      "prompt": "If a leaf is placed in a dark room, which part of photosynthesis is affected first?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Calvin cycle"
+        },
+        {
+          "id": "B",
+          "text": "Light‑dependent reactions"
+        },
+        {
+          "id": "C",
+          "text": "Chlorophyll synthesis"
+        },
+        {
+          "id": "D",
+          "text": "Stomatal opening"
+        }
+      ]
+    },
+    {
+      "id": "q7",
+      "type": "mcq",
+      "difficulty": "MEDIUM",
+      "skill": "intuition",
+      "prompt": "Why does chlorophyll appear green to our eyes?",
+      "options": [
+        {
+          "id": "A",
+          "text": "It reflects green light"
+        },
+        {
+          "id": "B",
+          "text": "It absorbs green light"
+        },
+        {
+          "id": "C",
+          "text": "It emits green light"
+        },
+        {
+          "id": "D",
+          "text": "It does not interact with green light"
+        }
+      ]
+    },
+    {
+      "id": "q8",
+      "type": "short",
+      "difficulty": "HARD",
+      "skill": "prereq",
+      "prompt": "Name one non‑plant organism that performs photosynthesis.",
+      "options": null
+    }
+  ]
+}

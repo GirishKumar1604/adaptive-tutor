@@ -1,0 +1,170 @@
+{
+  "topic": "algebra",
+  "questions": [
+    {
+      "id": "Q1",
+      "type": "mcq",
+      "difficulty": "EASY",
+      "skill": "definition",
+      "prompt": "Which of the following best defines algebra?",
+      "options": [
+        {
+          "id": "A",
+          "text": "The study of numbers only"
+        },
+        {
+          "id": "B",
+          "text": "Using variables to represent unknown numbers"
+        },
+        {
+          "id": "C",
+          "text": "A branch of geometry"
+        },
+        {
+          "id": "D",
+          "text": "Calculating percentages"
+        }
+      ],
+      "correct_answer": "B",
+      "explanation": "Algebra involves using symbols, often letters, to stand for unknown values."
+    },
+    {
+      "id": "Q2",
+      "type": "mcq",
+      "difficulty": "EASY",
+      "skill": "application",
+      "prompt": "Identify the algebraic expression from the choices below.",
+      "options": [
+        {
+          "id": "A",
+          "text": "2 + 3 = 5"
+        },
+        {
+          "id": "B",
+          "text": "x + 7"
+        },
+        {
+          "id": "C",
+          "text": "5 > 2"
+        },
+        {
+          "id": "D",
+          "text": "(4,5)"
+        }
+      ],
+      "correct_answer": "B",
+      "explanation": "An expression combines numbers and variables with operations, like x + 7."
+    },
+    {
+      "id": "Q3",
+      "type": "short",
+      "difficulty": "MEDIUM",
+      "skill": "application",
+      "prompt": "If x = 4, what is the value of 3x + 2?",
+      "options": null,
+      "correct_answer": "14",
+      "explanation": "Substituting 4 for x gives 3·4 + 2 = 12 + 2 = 14."
+    },
+    {
+      "id": "Q4",
+      "type": "mcq",
+      "difficulty": "EASY",
+      "skill": "definition",
+      "prompt": "Which statement correctly distinguishes an equation from an expression?",
+      "options": [
+        {
+          "id": "A",
+          "text": "An equation contains an equals sign, an expression does not"
+        },
+        {
+          "id": "B",
+          "text": "An expression always has variables, an equation never does"
+        },
+        {
+          "id": "C",
+          "text": "Both are the same thing"
+        },
+        {
+          "id": "D",
+          "text": "An equation is only used in geometry"
+        }
+      ],
+      "correct_answer": "A",
+      "explanation": "An equation states that two expressions are equal, indicated by the = sign."
+    },
+    {
+      "id": "Q5",
+      "type": "short",
+      "difficulty": "EASY",
+      "skill": "application",
+      "prompt": "Solve for x: 2x = 10",
+      "options": null,
+      "correct_answer": "5",
+      "explanation": "Dividing both sides by 2 gives x = 10/2 = 5."
+    },
+    {
+      "id": "Q6",
+      "type": "mcq",
+      "difficulty": "MEDIUM",
+      "skill": "application",
+      "prompt": "What is the solution to the equation 3x = 27?",
+      "options": [
+        {
+          "id": "A",
+          "text": "x = 6"
+        },
+        {
+          "id": "B",
+          "text": "x = 9"
+        },
+        {
+          "id": "C",
+          "text": "x = 12"
+        },
+        {
+          "id": "D",
+          "text": "x = 3"
+        }
+      ],
+      "correct_answer": "B",
+      "explanation": "Dividing both sides by 3 yields x = 27/3 = 9."
+    },
+    {
+      "id": "Q7",
+      "type": "short",
+      "difficulty": "HARD",
+      "skill": "application",
+      "prompt": "A garden needs 3 meters of fencing per side. If the total length of fencing used is 27 meters, how many meters long is each side?",
+      "options": null,
+      "correct_answer": "9",
+      "explanation": "27 meters ÷ 3 sides = 9 meters per side, matching the equation 3x = 27."
+    },
+    {
+      "id": "Q8",
+      "type": "mcq",
+      "difficulty": "EASY",
+      "skill": "intuition",
+      "prompt": "In algebra, what does the variable 'x' typically represent?",
+      "options": [
+        {
+          "id": "A",
+          "text": "A known constant"
+        },
+        {
+          "id": "B",
+          "text": "An unknown value to be found"
+        },
+        {
+          "id": "C",
+          "text": "The answer to a problem"
+        },
+        {
+          "id": "D",
+          "text": "A fixed number like 1"
+        }
+      ],
+      "correct_answer": "B",
+      "explanation": "Variables like x are placeholders for numbers that are not yet known."
+    }
+  ]
+}

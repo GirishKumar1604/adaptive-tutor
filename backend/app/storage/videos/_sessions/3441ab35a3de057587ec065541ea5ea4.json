@@ -1,0 +1,17 @@
+{
+  "session_id": "3441ab35a3de057587ec065541ea5ea4",
+  "job_id": "6d5de3e164366792456581d9b07f26e1",
+  "topic": "Binary Search",
+  "preferred_language": "English",
+  "rag_collection_id": null,
+  "mastery": {
+    "Binary Search": 0.56
+  },
+  "difficulty_level": "MEDIUM",
+  "created_at": "2026-02-02T08:49:54.686098Z",
+  "updated_at": "2026-02-02T10:29:07.509901Z",
+  "last_quiz_task_id": "6d6c8647-779c-41d9-8bb5-8329a44db5c1",
+  "last_remediation_prompt": "Explain 'Binary Search' from scratch in 6 bullets, with 1 tiny example and 3 quick checkpoint MCQs (easy). Focus on: Binary Search.",
+  "last_action": "REMEDIATE",
+  "last_remediation_path": "/app/app/storage/videos/_sessions/3441ab35a3de057587ec065541ea5ea4_remediation.json"
+}

@@ -1,0 +1,93 @@
+{
+  "topic": "Binary Search",
+  "focus_skills": [
+    "Binary Search"
+  ],
+  "difficulty": "EASY",
+  "bullets": [
+    "Binary Search works on sorted arrays by repeatedly halving the search interval.",
+    "Start with low = 0 and high = n‑1; compute mid = (low+high)//2.",
+    "If arr[mid] equals target, you’re done; otherwise discard the half that cannot contain the target.",
+    "Continue until low > high, meaning the target is not present.",
+    "Time complexity is O(log n) and space complexity is O(1) for the iterative version.",
+    "Works for both ascending and descending sorted arrays with a slight adjustment to the comparison."
+  ],
+  "tiny_example": "arr = [2,4,6,8,10]\ntarget = 8\nlow, high = 0, len(arr)-1\nwhile low <= high:\n    mid = (low+high)//2\n    if arr[mid] == target:\n        print('found at', mid)\n        break\n    elif arr[mid] < target:\n        low = mid + 1\n    else:\n        high = mid - 1",
+  "checks": [
+    {
+      "id": "c1",
+      "prompt": "What is the time complexity of binary search on a sorted array of size n?",
+      "options": [
+        {
+          "id": "A",
+          "text": "O(n)"
+        },
+        {
+          "id": "B",
+          "text": "O(log n)"
+        },
+        {
+          "id": "C",
+          "text": "O(n log n)"
+        },
+        {
+          "id": "D",
+          "text": "O(1)"
+        }
+      ],
+      "correct_answer": "B",
+      "explanation": "Binary search halves the search space each step, giving a logarithmic O(log n) time complexity."
+    },
+    {
+      "id": "c2",
+      "prompt": "If the target value is greater than arr[mid], which part of the array is discarded?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Left half"
+        },
+        {
+          "id": "B",
+          "text": "Right half"
+        },
+        {
+          "id": "C",
+          "text": "Both halves"
+        },
+        {
+          "id": "D",
+          "text": "None"
+        }
+      ],
+      "correct_answer": "A",
+      "explanation": "When target > arr[mid], the left half (including mid) cannot contain the target and is discarded."
+    },
+    {
+      "id": "c3",
+      "prompt": "Binary search requires the input array to be:",
+      "options": [
+        {
+          "id": "A",
+          "text": "Unsorted"
+        },
+        {
+          "id": "B",
+          "text": "Sorted"
+        },
+        {
+          "id": "C",
+          "text": "Circular"
+        },
+        {
+          "id": "D",
+          "text": "Random"
+        }
+      ],
+      "correct_answer": "B",
+      "explanation": "The algorithm relies on ordering to decide which half to discard, so the array must be sorted."
+    }
+  ],
+  "session_id": "3441ab35a3de057587ec065541ea5ea4",
+  "job_id": "6d5de3e164366792456581d9b07f26e1",
+  "generated_at": "2026-02-02T09:57:35.226168Z"
+}

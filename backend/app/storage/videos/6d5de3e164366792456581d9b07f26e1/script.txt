@@ -1,0 +1,17 @@
+1. What is Binary Search?
+Binary search is a fast way to find an item in a sorted list. Instead of checking each element one by one, we repeatedly cut the search interval in half. This makes the search much quicker than linear scanning.
+
+2. Why Sorting Matters
+The algorithm only works if the data is sorted, because we rely on the order to decide which half to discard. If the list isn’t sorted, binary search can give wrong results. Always sort first or start with a sorted collection.
+
+3. Divide and Conquer Idea
+We look at the middle element of the current range. If it matches the target, we’re done. If the target is smaller, we continue searching the left half; otherwise, we search the right half. This process repeats until the range is empty.
+
+4. Step‑by‑Step Algorithm
+1. Set low = 0 and high = length‑1. 2. While low ≤ high, compute mid = (low+high)//2. 3. Compare array[mid] with the target. 4. Adjust low or high accordingly. 5. Return the index if found, else -1.
+
+5. Complexity Analysis
+Each iteration cuts the search space in half, so the number of steps grows logarithmically with the list size. The time complexity is O(log n). The algorithm uses only a few variables, giving O(1) extra space.
+
+6. Common Pitfalls & Example
+Be careful with integer overflow when computing mid; use mid = low + (high‑low)//2. Also handle duplicate values if you need the first occurrence. Here’s a quick Python example that follows the safe pattern.

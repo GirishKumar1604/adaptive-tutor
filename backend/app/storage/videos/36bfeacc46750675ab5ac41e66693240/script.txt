@@ -1,0 +1,17 @@
+[1] What is Photosynthesis?
+Photosynthesis is the process plants use to turn light energy into chemical energy. It powers plant growth and produces the oxygen we breathe. In simple terms, plants act like solar panels, converting sunlight into food.
+
+[2] Light‑Dependent Reactions
+The first stage happens in the thylakoid membranes of chloroplasts. Sunlight excites chlorophyll, splitting water molecules and releasing oxygen while storing energy in ATP and NADPH.
+
+[3] Calvin Cycle (Light‑Independent)
+Using the ATP and NADPH from the first stage, the Calvin cycle fixes carbon dioxide into glucose. This occurs in the stroma and does not need direct light, but relies on the earlier energy capture.
+
+[4] Chlorophyll and Pigments
+Chlorophyll gives leaves their green color and absorbs mainly blue and red light. Accessory pigments like carotenoids capture additional wavelengths, expanding the plant's light palette.
+
+[5] Example: A Leaf in Sunlight
+Imagine a sunny leaf. Light hits chlorophyll, water is drawn up from the roots, and carbon dioxide enters through stomata. Within minutes, the leaf is producing glucose and releasing oxygen.
+
+[6] Why It Matters
+Photosynthesis fuels the entire food chain, provides the oxygen we need, and captures carbon dioxide, helping regulate Earth’s climate. Understanding it is key to agriculture and renewable energy research.

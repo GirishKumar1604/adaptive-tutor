@@ -1,0 +1,25 @@
+{
+  "collection_id": "e9f7e738ef1c0922c80cf2a80ee3ad99",
+  "chunks": [
+    {
+      "id": 1,
+      "source": "binary example.md",
+      "text": "## Example: Binary Search\n\n**Given Array:**  \r\n`[3, 7, 11, 15, 19, 23, 27]`\n\n**Target Element:**  \r\n`19`\n\n---\n\n### Step-by-Step Explanation\n\n1. The array is already **sorted**, which is required for binary search.\n\n2. Find the middle element of the array:  \r\n   - `low = 0`, `high = 6`  \r\n   - `mid = (0 + 6) / 2 = 3`  \r\n   - Middle element = `15`\n\n3. Compare the middle element with the target:  \r\n   - `15 < 19`, so the target must be in the **right half** of the array.\n\n4. Update the search range:  \r\n   - `low = mid + 1 = 4`  \r\n   - `high = 6`\n\n5. Find the new middle element:  \r\n   - `mid = (4 + 6) / 2 = 5`  \r\n   - Middle element = `23`\n\n6. Compare again:  \r\n   - `23 > 19`, so the target must be in the **left half**.\n\n7. Update the search range:  \r\n   - `low = 4`  \r\n   - `high = mid - 1 = 4`\n\n8. Find the middle element again:  \r\n   - `mid = (4 + 4) / 2 = 4`  \r\n   - Middle element = `19`"
+    },
+    {
+      "id": 2,
+      "source": "binary example.md",
+      "text": "- `high = mid - 1 = 4`\n\n8. Find the middle element again:  \r\n   - `mid = (4 + 4) / 2 = 4`  \r\n   - Middle element = `19`\n\n9. The middle element matches the target.  \r\n   **Element found at index 4.**\n\n---\n\n### Result\n\n✔️ Binary search successfully found the element `19` at index `4`."
+    },
+    {
+      "id": 3,
+      "source": "binary search.txt",
+      "text": "Binary Search\r\nDefinition\n\nBinary search is an efficient searching algorithm used to find the position of a target value within a sorted array or list. It works by repeatedly dividing the search interval in half.\n\nPrerequisite\n\nThe data must be sorted (ascending or descending).\n\nBasic Idea\n\nCompare the target value with the middle element of the array.\n\nIf the target equals the middle element → search successful.\n\nIf the target is less than the middle element → search the left half.\n\nIf the target is greater than the middle element → search the right half.\n\nRepeat until the element is found or the search range becomes empty.\n\nAlgorithm (Iterative Approach)\n\nSet low = 0, high = n − 1\n\nWhile low ≤ high:\n\nmid = (low + high) / 2\n\nIf array[mid] == target → return index\n\nElse if array[mid] < target → low = mid + 1\n\nElse → high = mid − 1\n\nIf not found → return -1\n\nTime Complexity"
+    },
+    {
+      "id": 4,
+      "source": "binary search.txt",
+      "text": "urn index\n\nElse if array[mid] < target → low = mid + 1\n\nElse → high = mid − 1\n\nIf not found → return -1\n\nTime Complexity\n\nBest Case: O(1) (middle element is the target)\n\nAverage Case: O(log n)\n\nWorst Case: O(log n)\n\nSpace Complexity\n\nIterative: O(1)\n\nRecursive: O(log n) (due to recursion stack)\n\nAdvantages\n\nMuch faster than linear search for large datasets\n\nEfficient and scalable\n\nReduces comparisons significantly\n\nDisadvantages\n\nWorks only on sorted data\n\nNot suitable for linked lists (no direct access to middle element)\n\nApplications\n\nSearching in large databases\n\nDictionary and phonebook lookups\n\nUsed internally in many algorithms (e.g., finding insertion points)\n\nExample\n\nArray: [2, 4, 6, 8, 10, 12]\r\nTarget: 8\n\nMiddle element = 6 → target is larger\n\nSearch right half → middle becomes 8 → found"
+    }
+  ]
+}

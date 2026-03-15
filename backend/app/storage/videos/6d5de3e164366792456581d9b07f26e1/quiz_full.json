@@ -1,0 +1,221 @@
+{
+  "topic": "Binary Search",
+  "questions": [
+    {
+      "id": "Q1",
+      "type": "mcq",
+      "difficulty": "EASY",
+      "skill": "Binary Search",
+      "prompt": "What is the time complexity of binary search on a sorted array of n elements?",
+      "options": [
+        {
+          "id": "A",
+          "text": "O(n)"
+        },
+        {
+          "id": "B",
+          "text": "O(log n)"
+        },
+        {
+          "id": "C",
+          "text": "O(n log n)"
+        },
+        {
+          "id": "D",
+          "text": "O(1)"
+        }
+      ],
+      "correct_answer": "B",
+      "explanation": "Binary search halves the search space each step, giving a logarithmic time complexity of O(log n)."
+    },
+    {
+      "id": "Q2",
+      "type": "mcq",
+      "difficulty": "EASY",
+      "skill": "Binary Search",
+      "prompt": "What is the time complexity of binary search on a sorted array of n elements?",
+      "options": [
+        {
+          "id": "A",
+          "text": "O(n)"
+        },
+        {
+          "id": "B",
+          "text": "O(log n)"
+        },
+        {
+          "id": "C",
+          "text": "O(n log n)"
+        },
+        {
+          "id": "D",
+          "text": "O(1)"
+        }
+      ],
+      "correct_answer": "B",
+      "explanation": "Binary search halves the search space each step, leading to logarithmic time O(log n)."
+    },
+    {
+      "id": "Q3",
+      "type": "mcq",
+      "difficulty": "EASY",
+      "skill": "Binary Search",
+      "prompt": "What is the time complexity of binary search on a sorted array of size n?",
+      "options": [
+        {
+          "id": "A",
+          "text": "O(n)"
+        },
+        {
+          "id": "B",
+          "text": "O(log n)"
+        },
+        {
+          "id": "C",
+          "text": "O(n log n)"
+        },
+        {
+          "id": "D",
+          "text": "O(1)"
+        }
+      ],
+      "correct_answer": "B",
+      "explanation": "Binary search halves the search space each step, giving logarithmic time O(log n)."
+    },
+    {
+      "id": "Q4",
+      "type": "mcq",
+      "difficulty": "EASY",
+      "skill": "Binary Search",
+      "prompt": "What is the time complexity of binary search on a sorted array of size n?",
+      "options": [
+        {
+          "id": "A",
+          "text": "O(n)"
+        },
+        {
+          "id": "B",
+          "text": "O(log n)"
+        },
+        {
+          "id": "C",
+          "text": "O(n log n)"
+        },
+        {
+          "id": "D",
+          "text": "O(1)"
+        }
+      ],
+      "correct_answer": "B",
+      "explanation": "Binary search halves the search space each step, giving a logarithmic O(log n) time complexity."
+    },
+    {
+      "id": "Q5",
+      "type": "mcq",
+      "difficulty": "EASY",
+      "skill": "Binary Search",
+      "prompt": "What is the time complexity of binary search on a sorted array of size n?",
+      "options": [
+        {
+          "id": "A",
+          "text": "O(n)"
+        },
+        {
+          "id": "B",
+          "text": "O(log n)"
+        },
+        {
+          "id": "C",
+          "text": "O(n log n)"
+        },
+        {
+          "id": "D",
+          "text": "O(1)"
+        }
+      ],
+      "correct_answer": "B",
+      "explanation": "Binary search halves the search space each step, giving a logarithmic O(log n) time."
+    },
+    {
+      "id": "Q6",
+      "type": "mcq",
+      "difficulty": "EASY",
+      "skill": "Binary Search",
+      "prompt": "Which of the following statements about binary search is TRUE?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Binary search can be applied to any list, regardless of whether it is sorted."
+        },
+        {
+          "id": "B",
+          "text": "Binary search runs in O(n) time on a sorted list."
+        },
+        {
+          "id": "C",
+          "text": "Binary search repeatedly halves the search interval, giving O(log n) time."
+        },
+        {
+          "id": "D",
+          "text": "Binary search requires extra space proportional to the size of the list."
+        }
+      ],
+      "correct_answer": "C",
+      "explanation": "Binary search cuts the search space in half each step, so it runs in O(log n) time and uses only O(1) extra space; it also requires the list to be sorted."
+    },
+    {
+      "id": "Q7",
+      "type": "mcq",
+      "difficulty": "MEDIUM",
+      "skill": "Binary Search",
+      "prompt": "Which statement about the binary search algorithm is true?",
+      "options": [
+        {
+          "id": "A",
+          "text": "It can correctly find a target in an unsorted array."
+        },
+        {
+          "id": "B",
+          "text": "It requires the array to be sorted in ascending order before searching."
+        },
+        {
+          "id": "C",
+          "text": "Its worst‑case time complexity is O(n)."
+        },
+        {
+          "id": "D",
+          "text": "It uses O(n) extra space for its operation."
+        }
+      ],
+      "correct_answer": "B",
+      "explanation": "Binary search relies on the order of elements; therefore the array must be sorted (typically in ascending order). This allows the algorithm to discard half of the remaining elements each step, giving O(log n) time and O(1) extra space."
+    },
+    {
+      "id": "Q8",
+      "type": "mcq",
+      "difficulty": "MEDIUM",
+      "skill": "Binary Search",
+      "prompt": "Which statement about binary search is true?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Binary search works on any list, sorted or unsorted."
+        },
+        {
+          "id": "B",
+          "text": "Binary search requires the list to be sorted in ascending order."
+        },
+        {
+          "id": "C",
+          "text": "Binary search can find the first occurrence of a duplicate without extra checks."
+        },
+        {
+          "id": "D",
+          "text": "Binary search uses O(n) time complexity."
+        }
+      ],
+      "correct_answer": "B",
+      "explanation": "Binary search relies on the order of elements to decide which half to discard, so the input must be sorted (typically in ascending order)."
+    }
+  ]
+}

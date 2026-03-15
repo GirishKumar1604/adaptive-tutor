@@ -1,0 +1,46 @@
+{
+  "segments": [
+    {
+      "id": 1,
+      "title": "What is Binary Search?",
+      "narration": "Binary search is a fast way to find an item in a sorted list. Instead of checking each element one by one, we repeatedly cut the search interval in half. This makes the search much quicker than linear scanning.",
+      "on_screen": "Binary Search: Find item by repeatedly halving a sorted list",
+      "duration_sec": 5
+    },
+    {
+      "id": 2,
+      "title": "Why Sorting Matters",
+      "narration": "The algorithm only works if the data is sorted, because we rely on the order to decide which half to discard. If the list isn’t sorted, binary search can give wrong results. Always sort first or start with a sorted collection.",
+      "on_screen": "Precondition: List must be sorted in ascending order",
+      "duration_sec": 5
+    },
+    {
+      "id": 3,
+      "title": "Divide and Conquer Idea",
+      "narration": "We look at the middle element of the current range. If it matches the target, we’re done. If the target is smaller, we continue searching the left half; otherwise, we search the right half. This process repeats until the range is empty.",
+      "on_screen": "Check middle → left half or right half → repeat",
+      "duration_sec": 5
+    },
+    {
+      "id": 4,
+      "title": "Step‑by‑Step Algorithm",
+      "narration": "1. Set low = 0 and high = length‑1. 2. While low ≤ high, compute mid = (low+high)//2. 3. Compare array[mid] with the target. 4. Adjust low or high accordingly. 5. Return the index if found, else -1.",
+      "on_screen": "low=0, high=n‑1; while low≤high: mid=(low+high)//2; compare; adjust; return index or -1",
+      "duration_sec": 5
+    },
+    {
+      "id": 5,
+      "title": "Complexity Analysis",
+      "narration": "Each iteration cuts the search space in half, so the number of steps grows logarithmically with the list size. The time complexity is O(log n). The algorithm uses only a few variables, giving O(1) extra space.",
+      "on_screen": "Time: O(log n) Space: O(1)",
+      "duration_sec": 5
+    },
+    {
+      "id": 6,
+      "title": "Common Pitfalls & Example",
+      "narration": "Be careful with integer overflow when computing mid; use mid = low + (high‑low)//2. Also handle duplicate values if you need the first occurrence. Here’s a quick Python example that follows the safe pattern.",
+      "on_screen": "mid = low + (high‑low)//2 # safe mid calculation\ndef binary_search(arr, target):\n    low, high = 0, len(arr)-1\n    while low <= high:\n        mid = low + (high-low)//2\n        if arr[mid] == target:\n            return mid\n        elif arr[mid] < target:\n            low = mid + 1\n        else:\n            high = mid - 1\n    return -1",
+      "duration_sec": 5
+    }
+  ]
+}

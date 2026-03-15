@@ -1,0 +1,205 @@
+{
+  "topic": "Binary Search",
+  "questions": [
+    {
+      "id": "Q1",
+      "type": "mcq",
+      "difficulty": "EASY",
+      "skill": "Binary Search",
+      "prompt": "Which statement about binary search is true?",
+      "options": [
+        {
+          "id": "A",
+          "text": "It can be applied to any unsorted list."
+        },
+        {
+          "id": "B",
+          "text": "It requires the list to be sorted in ascending order."
+        },
+        {
+          "id": "C",
+          "text": "It always runs in O(n) time."
+        },
+        {
+          "id": "D",
+          "text": "It uses extra space proportional to the input size."
+        }
+      ]
+    },
+    {
+      "id": "Q2",
+      "type": "mcq",
+      "difficulty": "EASY",
+      "skill": "Binary Search",
+      "prompt": "Given the sorted array [3,5,7,9,11,13,15] and a target value of 9, which index (0‑based) will the iterative binary search examine first?",
+      "options": [
+        {
+          "id": "A",
+          "text": "2"
+        },
+        {
+          "id": "B",
+          "text": "3"
+        },
+        {
+          "id": "C",
+          "text": "4"
+        },
+        {
+          "id": "D",
+          "text": "5"
+        }
+      ]
+    },
+    {
+      "id": "Q3",
+      "type": "mcq",
+      "difficulty": "MEDIUM",
+      "skill": "Binary Search",
+      "prompt": "In an iterative binary search on a sorted array, which condition correctly determines whether the search loop should continue?",
+      "options": [
+        {
+          "id": "A",
+          "text": "while low < high"
+        },
+        {
+          "id": "B",
+          "text": "while low <= high"
+        },
+        {
+          "id": "C",
+          "text": "while low != high"
+        },
+        {
+          "id": "D",
+          "text": "while high - low > 1"
+        }
+      ]
+    },
+    {
+      "id": "Q4",
+      "type": "mcq",
+      "difficulty": "MEDIUM",
+      "skill": "Binary Search",
+      "prompt": "Given the sorted array [2,4,6,8,10,12,14], a recursive binary search is used to find the target value 10. Which value is compared with the target during the second recursive call?",
+      "options": [
+        {
+          "id": "A",
+          "text": "6"
+        },
+        {
+          "id": "B",
+          "text": "8"
+        },
+        {
+          "id": "C",
+          "text": "10"
+        },
+        {
+          "id": "D",
+          "text": "12"
+        }
+      ]
+    },
+    {
+      "id": "Q5",
+      "type": "mcq",
+      "difficulty": "MEDIUM",
+      "skill": "Binary Search",
+      "prompt": "In a binary search on a sorted array of length 8, after comparing the target with the middle element at index 3, the algorithm determines that the target is smaller than the middle element. What will be the new high index for the next iteration?",
+      "options": [
+        {
+          "id": "A",
+          "text": "2"
+        },
+        {
+          "id": "B",
+          "text": "3"
+        },
+        {
+          "id": "C",
+          "text": "4"
+        },
+        {
+          "id": "D",
+          "text": "5"
+        }
+      ]
+    },
+    {
+      "id": "Q6",
+      "type": "mcq",
+      "difficulty": "HARD",
+      "skill": "Binary Search",
+      "prompt": "Consider a sorted array of 1023 distinct integers. When performing an iterative binary search for a target that is not present, what is the maximum number of element comparisons that will be performed before the algorithm terminates?",
+      "options": [
+        {
+          "id": "A",
+          "text": "10"
+        },
+        {
+          "id": "B",
+          "text": "11"
+        },
+        {
+          "id": "C",
+          "text": "12"
+        },
+        {
+          "id": "D",
+          "text": "13"
+        }
+      ]
+    },
+    {
+      "id": "Q7",
+      "type": "mcq",
+      "difficulty": "HARD",
+      "skill": "Binary Search",
+      "prompt": "When a recursive binary search is executed on a sorted array of length 31 to locate a target that is present, what is the maximum possible depth of the recursion stack?",
+      "options": [
+        {
+          "id": "A",
+          "text": "4"
+        },
+        {
+          "id": "B",
+          "text": "5"
+        },
+        {
+          "id": "C",
+          "text": "6"
+        },
+        {
+          "id": "D",
+          "text": "7"
+        }
+      ]
+    },
+    {
+      "id": "Q8",
+      "type": "mcq",
+      "difficulty": "HARD",
+      "skill": "Binary Search",
+      "prompt": "A sorted array contains 15 distinct integers. An iterative binary search is used to locate a target value that is larger than every element in the array. Including the final check that causes the loop to terminate, how many times is the loop condition `low <= high` evaluated?",
+      "options": [
+        {
+          "id": "A",
+          "text": "4 times"
+        },
+        {
+          "id": "B",
+          "text": "5 times"
+        },
+        {
+          "id": "C",
+          "text": "6 times"
+        },
+        {
+          "id": "D",
+          "text": "7 times"
+        }
+      ]
+    }
+  ]
+}

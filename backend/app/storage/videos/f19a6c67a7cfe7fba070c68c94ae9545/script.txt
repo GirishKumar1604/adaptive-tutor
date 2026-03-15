@@ -1,0 +1,20 @@
+1. What is Binary Search?
+Binary search is a fast way to locate a target value in a sorted list by repeatedly halving the search range.
+
+2. Why Sorting Matters
+The algorithm only works when the data is sorted, because it relies on ordering to decide which half to discard.
+
+3. Core Idea
+We compare the target with the middle element: if equal we’re done, if smaller we search left, if larger we search right.
+
+4. Iterative Steps
+Set low to 0 and high to n‑1. While low ≤ high, compute mid, check array[mid], and adjust low or high accordingly.
+
+5. Complexity Analysis
+Binary search runs in O(log n) time, O(1) space iteratively, and O(log n) space recursively because of the call stack.
+
+6. Example Walkthrough
+In [2,4,6,8,10,12], searching for 8: first mid=6 (index2) → target larger, search right half; next mid=8 (index3) → found.
+
+7. Where It’s Used
+Binary search powers dictionary lookups, database indexing, and helps find insertion points in many algorithms.

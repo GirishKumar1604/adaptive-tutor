@@ -1,0 +1,17 @@
+1. What is Algebra?
+Welcome! In algebra we use symbols called variables to represent numbers we don't know yet. Think of x as a placeholder for any value. We'll see how to work with these symbols to solve problems.
+
+2. Algebraic Expressions
+An algebraic expression combines numbers, variables, and operations. For example, 3x + 2 adds three times the unknown to a constant. We'll learn how to read and write these expressions.
+
+3. Evaluating Expressions
+To evaluate, substitute a value for the variable. If x = 4, then 3x + 2 becomes 3·4 + 2 = 14. Practice plugging numbers into expressions.
+
+4. Introducing Equations
+An equation states that two expressions are equal, like 2x = 10. Solving means finding the value of the variable that makes the statement true.
+
+5. Solving Linear Equations
+To solve 2x = 10, divide both sides by 2, giving x = 5. The same steps work for more complex equations, such as 3x + 1 = 10.
+
+6. Real‑World Example
+If a garden costs $3 per square meter and the total cost is $27, how many square meters were planted? Set up 3x = 27, solve for x = 9 meters. This shows algebra in everyday life.

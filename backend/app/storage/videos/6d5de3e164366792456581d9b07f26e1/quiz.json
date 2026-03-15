@@ -1,0 +1,205 @@
+{
+  "topic": "Binary Search",
+  "questions": [
+    {
+      "id": "Q1",
+      "type": "mcq",
+      "difficulty": "EASY",
+      "skill": "Binary Search",
+      "prompt": "What is the time complexity of binary search on a sorted array of n elements?",
+      "options": [
+        {
+          "id": "A",
+          "text": "O(n)"
+        },
+        {
+          "id": "B",
+          "text": "O(log n)"
+        },
+        {
+          "id": "C",
+          "text": "O(n log n)"
+        },
+        {
+          "id": "D",
+          "text": "O(1)"
+        }
+      ]
+    },
+    {
+      "id": "Q2",
+      "type": "mcq",
+      "difficulty": "EASY",
+      "skill": "Binary Search",
+      "prompt": "What is the time complexity of binary search on a sorted array of n elements?",
+      "options": [
+        {
+          "id": "A",
+          "text": "O(n)"
+        },
+        {
+          "id": "B",
+          "text": "O(log n)"
+        },
+        {
+          "id": "C",
+          "text": "O(n log n)"
+        },
+        {
+          "id": "D",
+          "text": "O(1)"
+        }
+      ]
+    },
+    {
+      "id": "Q3",
+      "type": "mcq",
+      "difficulty": "EASY",
+      "skill": "Binary Search",
+      "prompt": "What is the time complexity of binary search on a sorted array of size n?",
+      "options": [
+        {
+          "id": "A",
+          "text": "O(n)"
+        },
+        {
+          "id": "B",
+          "text": "O(log n)"
+        },
+        {
+          "id": "C",
+          "text": "O(n log n)"
+        },
+        {
+          "id": "D",
+          "text": "O(1)"
+        }
+      ]
+    },
+    {
+      "id": "Q4",
+      "type": "mcq",
+      "difficulty": "EASY",
+      "skill": "Binary Search",
+      "prompt": "What is the time complexity of binary search on a sorted array of size n?",
+      "options": [
+        {
+          "id": "A",
+          "text": "O(n)"
+        },
+        {
+          "id": "B",
+          "text": "O(log n)"
+        },
+        {
+          "id": "C",
+          "text": "O(n log n)"
+        },
+        {
+          "id": "D",
+          "text": "O(1)"
+        }
+      ]
+    },
+    {
+      "id": "Q5",
+      "type": "mcq",
+      "difficulty": "EASY",
+      "skill": "Binary Search",
+      "prompt": "What is the time complexity of binary search on a sorted array of size n?",
+      "options": [
+        {
+          "id": "A",
+          "text": "O(n)"
+        },
+        {
+          "id": "B",
+          "text": "O(log n)"
+        },
+        {
+          "id": "C",
+          "text": "O(n log n)"
+        },
+        {
+          "id": "D",
+          "text": "O(1)"
+        }
+      ]
+    },
+    {
+      "id": "Q6",
+      "type": "mcq",
+      "difficulty": "EASY",
+      "skill": "Binary Search",
+      "prompt": "Which of the following statements about binary search is TRUE?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Binary search can be applied to any list, regardless of whether it is sorted."
+        },
+        {
+          "id": "B",
+          "text": "Binary search runs in O(n) time on a sorted list."
+        },
+        {
+          "id": "C",
+          "text": "Binary search repeatedly halves the search interval, giving O(log n) time."
+        },
+        {
+          "id": "D",
+          "text": "Binary search requires extra space proportional to the size of the list."
+        }
+      ]
+    },
+    {
+      "id": "Q7",
+      "type": "mcq",
+      "difficulty": "MEDIUM",
+      "skill": "Binary Search",
+      "prompt": "Which statement about the binary search algorithm is true?",
+      "options": [
+        {
+          "id": "A",
+          "text": "It can correctly find a target in an unsorted array."
+        },
+        {
+          "id": "B",
+          "text": "It requires the array to be sorted in ascending order before searching."
+        },
+        {
+          "id": "C",
+          "text": "Its worst‑case time complexity is O(n)."
+        },
+        {
+          "id": "D",
+          "text": "It uses O(n) extra space for its operation."
+        }
+      ]
+    },
+    {
+      "id": "Q8",
+      "type": "mcq",
+      "difficulty": "MEDIUM",
+      "skill": "Binary Search",
+      "prompt": "Which statement about binary search is true?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Binary search works on any list, sorted or unsorted."
+        },
+        {
+          "id": "B",
+          "text": "Binary search requires the list to be sorted in ascending order."
+        },
+        {
+          "id": "C",
+          "text": "Binary search can find the first occurrence of a duplicate without extra checks."
+        },
+        {
+          "id": "D",
+          "text": "Binary search uses O(n) time complexity."
+        }
+      ]
+    }
+  ]
+}
