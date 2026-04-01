@@ -5,7 +5,7 @@ import re
 import json
 import math
 from collections import Counter, defaultdict
-from typing import List, Dict, Optional, Tuple
+from typing import Any, List, Dict, Optional, Tuple
 
 RAG_DIR = os.getenv("RAG_DIR", "/app/app/storage/rag")
 
@@ -156,6 +156,7 @@ def create_collection_from_texts(
     return {
         "collection_id": collection_id,
         "num_chunks": N,
+        "chunks": chunks,
     }
 
 
@@ -165,16 +166,13 @@ def list_collections() -> List[str]:
     return sorted([d for d in os.listdir(RAG_DIR) if os.path.isdir(os.path.join(RAG_DIR, d))])
 
 
-def query_collection(
+def query_collection_with_sources(
     *,
     collection_id: str,
     question: str,
     top_k: int = 5,
     max_chars: int = 1800,
-) -> str:
-    """
-    Returns a single context string made from top_k chunks.
-    """
+) -> Dict[str, Any]:
     ipath = _index_path(collection_id)
     cpath = _chunks_path(collection_id)
 
@@ -183,20 +181,16 @@ def query_collection(
 
     with open(ipath, "r", encoding="utf-8") as f:
         idx = json.load(f)
-
     with open(cpath, "r", encoding="utf-8") as f:
         chunks_doc = json.load(f)
 
     idf: Dict[str, float] = idx.get("idf") or {}
     items = idx.get("items") or []
     chunks = chunks_doc.get("chunks") or []
-
     chunks_by_id = {c["id"]: c for c in chunks}
 
     q_tokens = _tokenize(question)
     q_tf = Counter(q_tokens)
-
-    # query weights
     q_norm_sq = 0.0
     q_w = {}
     for term, freq in q_tf.items():
@@ -204,19 +198,16 @@ def query_collection(
         if w != 0.0:
             q_w[term] = w
             q_norm_sq += (w * w)
-
     q_norm = math.sqrt(q_norm_sq) if q_norm_sq > 0 else 1.0
 
     scored = []
     for it in items:
         tf = it.get("tf") or {}
         c_norm = float(it.get("norm") or 1.0)
-
         dot = 0.0
         for term, qw in q_w.items():
             if term in tf:
                 dot += qw * (float(tf[term]) * float(idf.get(term, 0.0)))
-
         score = dot / (q_norm * c_norm) if (q_norm > 0 and c_norm > 0) else 0.0
         if score > 0:
             scored.append((score, int(it["id"]), it.get("source") or ""))
@@ -224,8 +215,8 @@ def query_collection(
     scored.sort(reverse=True, key=lambda x: x[0])
     picked = scored[: max(1, top_k)]
 
-    # build context string
     out_parts: List[str] = []
+    sources: List[Dict[str, str]] = []
     used = 0
     for score, cid, source in picked:
         c = chunks_by_id.get(cid)
@@ -238,6 +229,7 @@ def query_collection(
                 out_parts.append(block[:remaining])
             break
         out_parts.append(block)
+        sources.append({"source": source, "chunk_id": str(cid), "score": f"{score:.4f}"})
         used += len(block) + 2
 
-    return "\n\n---\n\n".join(out_parts).strip()
+    return {"context": "\n\n---\n\n".join(out_parts).strip(), "sources": sources}

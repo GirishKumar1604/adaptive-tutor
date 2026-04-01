@@ -1,0 +1,10 @@
+{
+  "name": "adaptive-tutor",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "frontend:dev": "cd frontend && npm run dev",
+    "frontend:build": "cd frontend && npm run build",
+    "backend:test": "cd backend && pytest"
+  }
+}

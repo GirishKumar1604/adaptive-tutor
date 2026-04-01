@@ -6,6 +6,9 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 
 from celery_app import celery
+from db import session_scope
+from models import JobStatus
+from services.persistence_service import upsert_quiz_job_result
 
 OUTPUT_DIR = os.getenv("OUTPUT_DIR", "/app/app/storage/videos")
 
@@ -40,8 +43,9 @@ def _make_public(quiz_full: Dict[str, Any]) -> Dict[str, Any]:
     return {"topic": quiz_full.get("topic", ""), "questions": public_questions}
 
 
-@celery.task(name="tasks.quiz_pipeline.generate_quiz")
+@celery.task(name="tasks.quiz_pipeline.generate_quiz", bind=True)
 def generate_quiz(
+    self,
     *,
     job_id: str,
     topic: str,
@@ -49,6 +53,7 @@ def generate_quiz(
     preferred_language: Optional[str] = "English",
     student_state: Optional[Dict[str, Any]] = None,
     num_questions: int = 8,
+    rag_collection_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Quiz Pipeline:
@@ -72,6 +77,24 @@ def generate_quiz(
     # ---- Retry wrapper (quick + reliable) ----
     last_err = None
     quiz_full = None
+    rag_context = ""
+    rag_sources = []
+    rag_error = None
+    if rag_collection_id:
+        try:
+            from services.rag_service import query_collection_with_sources
+
+            rag_data = query_collection_with_sources(
+                collection_id=rag_collection_id,
+                question=f"{topic}\nGoal: {user_goal or ''}",
+                top_k=5,
+                max_chars=1400,
+            )
+            rag_context = rag_data.get("context") or ""
+            rag_sources = rag_data.get("sources") or []
+        except Exception as exc:
+            rag_error = f"{type(exc).__name__}: {exc}"
+
     for _attempt in range(1, 4):
         try:
             quiz_full = generate_quiz_full(
@@ -81,6 +104,7 @@ def generate_quiz(
                 student_state=student_state or {},
                 segments=segments,
                 num_questions=num_questions,
+                rag_context=rag_context,
             )
             break
         except Exception as e:
@@ -97,11 +121,19 @@ def generate_quiz(
     _write_json(quiz_full_path, quiz_full)
     _write_json(quiz_path, quiz_public)
 
-    return {
+    payload = {
         "status": "COMPLETED",
         "job_id": job_id,
         "topic": topic,
         "quiz_path": quiz_path,
         "quiz_full_path": quiz_full_path,
+        "rag_sources": rag_sources,
+        "rag_error": rag_error,
         "generated_at": datetime.utcnow().isoformat() + "Z",
     }
+
+    with session_scope() as db:
+        status = JobStatus.SUCCESS if not rag_error else JobStatus.PARTIAL
+        upsert_quiz_job_result(db, task_id=self.request.id, status=status, result_payload=payload)
+
+    return payload

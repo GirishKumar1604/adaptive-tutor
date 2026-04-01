@@ -281,12 +281,15 @@ def generate_quiz_full(
     student_state: Dict[str, Any],
     segments: List[Dict[str, Any]],
     num_questions: int = 8,
+    rag_context: str = "",
 ) -> Dict[str, Any]:
     preferred_language = preferred_language or "English"
     student_state = student_state or {}
     user_goal = user_goal or "Learn and test understanding."
 
     ctx = _segments_to_context(segments)
+    if rag_context:
+        ctx = f"{ctx}\n\nRAG context:\n{rag_context}".strip()
     if not ctx:
         ctx = "- No lesson context available."
 
