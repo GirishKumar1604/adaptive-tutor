@@ -767,6 +767,7 @@ For each segment output:
                 schema=SEGMENTS_SCHEMA,
                 strict=True,
                 temperature=0.2,
+                max_tokens=4000,
             )
             break
         except Exception as e:

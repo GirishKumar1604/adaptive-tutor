@@ -26,6 +26,7 @@ class SessionModel(Base):
     __tablename__ = "sessions"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: uuid.uuid4().hex)
+    learner_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     topic: Mapped[str] = mapped_column(String(512), nullable=False)
     preferred_language: Mapped[str] = mapped_column(String(64), nullable=False, default="English")
     rag_collection_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
@@ -132,6 +133,39 @@ class RagChunk(Base):
     text: Mapped[str] = mapped_column(Text, nullable=False)
     weight_payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, nullable=False)
+
+
+class LearnerProfile(Base):
+    """Stable identity for a learner across all sessions and topics."""
+
+    __tablename__ = "learner_profiles"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)  # UUID from localStorage
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
+
+    skill_bank: Mapped[list["LearnerSkillBank"]] = relationship(back_populates="learner", cascade="all, delete-orphan")
+
+
+class LearnerSkillBank(Base):
+    """Cross-topic, cross-session skill scores for a learner.
+
+    skill_name is canonical and topic-independent, e.g. 'Time Complexity', 'Recursion', 'Core'.
+    score is a rolling weighted average (0.0 – 1.0).
+    """
+
+    __tablename__ = "learner_skill_bank"
+    __table_args__ = (UniqueConstraint("learner_id", "skill_name", name="uq_learner_skill"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    learner_id: Mapped[str] = mapped_column(String(64), ForeignKey("learner_profiles.id"), nullable=False, index=True)
+    skill_name: Mapped[str] = mapped_column(String(128), nullable=False)
+    score: Mapped[float] = mapped_column(Float, nullable=False, default=0.5)
+    attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    topic_hint: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
+
+    learner: Mapped["LearnerProfile"] = relationship(back_populates="skill_bank")
 
 
 class RemediationPack(Base):

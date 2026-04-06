@@ -9,6 +9,7 @@ from routes.learn import router as learn_router
 from routes.quiz import router as quiz_router
 from routes.rag import router as rag_router
 from routes.adaptive import router as adaptive_router
+from routes.coach import router as coach_router
 
 from tasks.render import render_manim_video
 from celery_app import celery
@@ -24,6 +25,7 @@ app.include_router(learn_router, tags=["Learn"])
 app.include_router(quiz_router, tags=["Quiz"])
 app.include_router(rag_router, tags=["RAG"])
 app.include_router(adaptive_router, tags=["Adaptive"])
+app.include_router(coach_router, tags=["Coach"])
 
 app.add_middleware(
     CORSMiddleware,
@@ -108,4 +110,9 @@ def download_video(task_id: str):
     video_path = (res.result or {}).get("video_path")
     if not video_path:
         raise HTTPException(status_code=500, detail="Task succeeded but video_path missing")
-    return FileResponse(video_path, media_type="video/mp4", filename="output.mp4")
+    return FileResponse(
+        video_path,
+        media_type="video/mp4",
+        filename="output.mp4",
+        headers={"Accept-Ranges": "bytes"},
+    )

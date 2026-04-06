@@ -29,6 +29,7 @@ export const api = {
     preferred_language?: string;
     quality?: "low" | "medium";
     rag_collection_id?: string | null;
+    learner_id?: string | null;
   }) => req<{ session_id: string; job_id: string; task_id: string }>("/adaptive/start", { method: "POST", body: JSON.stringify(payload) }),
   ragUpload: async (files: File[]) => {
     const form = new FormData();
@@ -39,6 +40,17 @@ export const api = {
   },
   ragQuery: (payload: { collection_id: string; question: string; top_k?: number; max_chars?: number }) =>
     req<{ collection_id: string; context: string; sources: Array<{ source: string; chunk_id: string; score: string }> }>("/rag/query", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  coachChat: (payload: {
+    question: string;
+    topic?: string;
+    preferred_language?: string;
+    rag_collection_id?: string | null;
+    history?: Array<{ role: "user" | "assistant"; text: string }>;
+  }) =>
+    req<{ answer: string; used_rag: boolean; sources: Array<{ source: string; chunk_id: string; score: string }> }>("/coach/chat", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
@@ -61,4 +73,22 @@ export const api = {
   submitQuiz: (payload: any) => req<any>("/quiz/submit", { method: "POST", body: JSON.stringify(payload) }),
   getSession: (sessionId: string) => req<any>(`/sessions/${sessionId}`),
   remediationSubmit: (payload: any) => req<any>("/adaptive/remediation/submit", { method: "POST", body: JSON.stringify(payload) }),
+  reinforcementStart: (payload: {
+    session_id: string;
+    job_id: string;
+    topic: string;
+    preferred_language?: string;
+    wrong_question_ids: string[];
+    num_questions?: number;
+  }) => req<{ topic: string; difficulty: string; questions: any[] }>("/quiz/reinforcement/start", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }),
+  reinforcementSubmit: (payload: {
+    session_id: string;
+    job_id: string;
+    topic: string;
+    preferred_language?: string;
+    answers: Array<{ question_id: string; answer: string }>;
+  }) => req<any>("/quiz/reinforcement/submit", { method: "POST", body: JSON.stringify(payload) }),
 };

@@ -57,11 +57,49 @@ def ensure_video_duration(video_path: str, target_duration: float, out_path: str
     if cur < target - 0.03:
         pad = round(target - cur + 0.02, 3)
         vf = f"tpad=stop_mode=clone:stop_duration={pad}"
-        cmd = ["ffmpeg", "-y", "-i", video_path, "-vf", vf, "-c:v", "libx264", "-pix_fmt", "yuv420p", out_path]
+        cmd = [
+            "ffmpeg",
+            "-y",
+            "-i",
+            video_path,
+            "-vf",
+            vf,
+            "-c:v",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+            "-movflags",
+            "+faststart",
+            out_path,
+        ]
     elif cur > target + 0.03:
-        cmd = ["ffmpeg", "-y", "-i", video_path, "-t", f"{target:.3f}", "-c:v", "libx264", "-pix_fmt", "yuv420p", out_path]
+        cmd = [
+            "ffmpeg",
+            "-y",
+            "-i",
+            video_path,
+            "-t",
+            f"{target:.3f}",
+            "-c:v",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+            "-movflags",
+            "+faststart",
+            out_path,
+        ]
     else:
-        cmd = ["ffmpeg", "-y", "-i", video_path, "-c:v", "copy", out_path]
+        cmd = [
+            "ffmpeg",
+            "-y",
+            "-i",
+            video_path,
+            "-c:v",
+            "copy",
+            "-movflags",
+            "+faststart",
+            out_path,
+        ]
 
     completed = subprocess.run(
         cmd,
@@ -118,7 +156,13 @@ def concat_media_files(inputs: list[str], out_path: str) -> str:
             safe = p.replace("\\", "/").replace("'", "'\\''")
             f.write(f"file '{safe}'\n")
 
-    cmd = ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", list_file, "-c", "copy", out_path]
+    cmd = ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", list_file, "-c", "copy"]
+
+    # Faststart only applies to MP4 outputs; keep MP3 concat behavior unchanged.
+    if out_path.lower().endswith(".mp4"):
+        cmd.extend(["-movflags", "+faststart"])
+
+    cmd.append(out_path)
     completed = subprocess.run(
         cmd,
         stdout=subprocess.PIPE,

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Adaptive Tutor - AI Powered Learning" />
+  <title>Adaptive Tutor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- Hero View -->
+  <div class="view-hero" id="view-hero">
+    <div class="hero-bg" aria-hidden="true">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+      <div class="grid-overlay"></div>
+    </div>
+    
+    <div class="floating-pills" aria-hidden="true">
+      <div class="pill pill-1">🧬 Genetics</div>
+      <div class="pill pill-2">⚛️ Quantum Physics</div>
+      <div class="pill pill-3">💻 React Native</div>
+      <div class="pill pill-4">📈 Macroeconomics</div>
+    </div>
+
+    <main class="hero-main">
+      <div class="hero-badge stagger-1">
+        <span class="badge-dot pulse-dot"></span>
+        <span>AI-Powered Adaptive Learning</span>
+      </div>
+      
+      <div class="hero-card stagger-2">
+        <h1 class="hero-title">
+          Master any topic<br/>
+          <span class="text-gradient">in minutes.</span>
+        </h1>
+        <p class="hero-desc">
+          Enter what you want to learn. We generate a personalized video, adaptive quizzes, and a 1-on-1 AI coach specifically for you.
+        </p>
+        
+        <div class="input-container stagger-3">
+          <div class="input-glow-bg"></div>
+          <input type="text" id="topic-input" class="hero-input" placeholder="e.g. Backpropagation in Neural Networks" autocomplete="off" />
+          <button class="input-submit-btn" id="btn-start-learning" aria-label="Start Learning">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+          </button>
+        </div>
+        
+      </div>
+    </main>
+  </div>
+
+  <!-- Workspace View -->
+  <div class="view-workspace hidden" id="view-workspace">
+    <header class="workspace-header">
+      <div class="nav-logo">
+        <div class="logo-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <span class="logo-text">Adaptive Tutor</span>
+      </div>
+      <div class="current-topic-badge">
+        <span class="recording-dot"></span>
+        <span id="display-topic">Topic</span>
+      </div>
+      <div class="user-profile">
+        <div class="avatar">
+          <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Felix" alt="User Avatar" />
+        </div>
+      </div>
+    </header>
+
+    <div class="layout-split">
+      <!-- Left Pane: 59% -->
+      <div class="pane pane-left">
+        <div class="video-container panel" id="video-shell">
+          <div class="ambient-video-glow"></div>
+          <div class="video-overlay blur-overlay">
+            <div class="spinner-modern"></div>
+            <p class="loading-text fade-in-out">Generating your personalized lesson...</p>
+          </div>
+          <!-- Fake player controls -->
+          <div class="video-controls">
+            <div class="play-btn"></div>
+            <div class="progress-bar">
+              <div class="progress-fill shimmer"></div>
+            </div>
+            <div class="time">0:00 / 0:00</div>
+          </div>
+        </div>
+
+        <div class="lesson-notes panel module-enter">
+          <div class="panel-header">
+            <h3>Lesson Blueprint</h3>
+            <span class="kicker-label">Live</span>
+          </div>
+          <div class="notes-content">
+            <div class="note-item stagger-ui-1">
+              <div class="check-circle"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+              <p>Analyzing topic structure...</p>
+            </div>
+            <div class="note-item stagger-ui-2">
+              <div class="check-circle pending"></div>
+              <p>Rendering Manim animations</p>
+            </div>
+            <div class="note-skeleton note-stagger-3"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Pane: 41% -->
+      <div class="pane pane-right panel module-enter">
+        <div class="tabs">
+          <div class="tabs-list">
+            <div class="tabs-indicator" id="tabs-indicator"></div>
+            <button class="tab-trigger active" aria-selected="true" id="btn-tab-coach">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+              AI Coach
+            </button>
+            <button class="tab-trigger" aria-selected="false" id="btn-tab-quiz">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              Knowledge Check
+            </button>
+          </div>
+          
+          <div class="tab-content-area">
+            <!-- Coach Tab -->
+            <div class="tab-panel active" id="tab-coach">
+              <div class="chat-container">
+                <div class="chat-history">
+                  <div class="chat-bubble ai-bubble bubble-enter">
+                    <div class="bubble-avatar ai">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    </div>
+                    <div class="bubble-text">
+                      Hi! I'm your AI Coach crafting your <strong class="accent-text" id="chat-topic">module</strong>. Is there any specific angle (e.g. math heavy vs intuitive) you prefer?
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="chat-input-block">
+                  <div class="chat-input-wrapper focus-ring-anim">
+                    <input type="text" class="chat-input" placeholder="Type your preference..." />
+                    <button class="btn btn-icon btn-send" aria-label="Send message">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Quiz Tab -->
+            <div class="tab-panel" id="tab-quiz">
+              <div class="quiz-container">
+                <div class="quiz-empty-state">
+                  <div class="lock-icon pulse-soft">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  </div>
+                  <h4>Assessments Locked</h4>
+                  <p>Complete the video lesson to unlock your personalized knowledge check.</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>

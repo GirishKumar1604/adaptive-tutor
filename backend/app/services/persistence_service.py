@@ -9,6 +9,8 @@ from sqlalchemy.orm import Session
 from models import (
     AdaptiveTransition,
     JobStatus,
+    LearnerProfile,
+    LearnerSkillBank,
     LessonJob,
     MasterySnapshot,
     QuizAttempt,
@@ -242,5 +244,109 @@ def replace_rag_chunks(db: Session, *, collection_id: str, chunks: list[Dict[str
             text=c.get("text") or "",
             weight_payload=c.get("weights") or {},
         )
+        db.add(row)
+    db.flush()
+
+
+# ---------------------------------------------------------------------------
+# Attempt counting
+# ---------------------------------------------------------------------------
+
+def count_quiz_attempts(db: Session, *, session_id: str, job_id: str) -> int:
+    """Return number of existing quiz attempts for this session+job."""
+    return db.query(QuizAttempt).filter(
+        QuizAttempt.session_id == session_id,
+        QuizAttempt.job_id == job_id,
+    ).count()
+
+
+# ---------------------------------------------------------------------------
+# Learner profile + skill bank
+# ---------------------------------------------------------------------------
+
+def get_or_create_learner(db: Session, learner_id: str) -> LearnerProfile:
+    """Return existing learner profile or create a new one."""
+    row = db.get(LearnerProfile, learner_id)
+    if row is None:
+        row = LearnerProfile(id=learner_id)
+        db.add(row)
+        db.flush()
+    return row
+
+
+def get_skill_bank(db: Session, learner_id: str) -> Dict[str, float]:
+    """Return {skill_name: score} for all skills the learner has encountered."""
+    rows = db.execute(
+        select(LearnerSkillBank).where(LearnerSkillBank.learner_id == learner_id)
+    ).scalars().all()
+    return {r.skill_name: r.score for r in rows}
+
+
+def flush_skill_bank_to_mastery(
+    db: Session,
+    *,
+    learner_id: str,
+    topic: str,
+    skill_bank: Dict[str, float],
+) -> Dict[str, float]:
+    """Convert a learner's skill bank into a topic-scoped mastery dict.
+
+    For each skill in the bank that matches a topic-scoped key pattern or
+    generic skill name, seed the session mastery from the learner's prior score
+    instead of the flat 0.5 default.
+    Returns the seeded mastery dict keyed as 'Topic::Skill'.
+    """
+    seeded: Dict[str, float] = {}
+    for skill_name, score in skill_bank.items():
+        # skill_name may already be canonical ('Topic::Skill') or bare ('Core')
+        bare = skill_name.split("::", 1)[1] if "::" in skill_name else skill_name
+        seeded[f"{topic}::{bare}"] = score
+    # Always guarantee a Core entry
+    core_key = f"{topic}::Core"
+    if core_key not in seeded:
+        seeded[core_key] = 0.5
+    return seeded
+
+
+def update_skill_bank_from_mastery(
+    db: Session,
+    *,
+    learner_id: str,
+    topic: str,
+    mastery: Dict[str, float],
+) -> None:
+    """Write the session's updated mastery back to the learner skill bank.
+
+    Uses a weighted rolling average: new = old * 0.7 + latest * 0.3
+    so that one bad session doesn't wipe out prior learning.
+    """
+    now = datetime.utcnow()
+    for key, new_score in mastery.items():
+        # Normalise to bare skill name
+        bare = key.split("::", 1)[1] if "::" in key else key
+        row = db.execute(
+            select(LearnerSkillBank).where(
+                LearnerSkillBank.learner_id == learner_id,
+                LearnerSkillBank.skill_name == bare,
+            )
+        ).scalar_one_or_none()
+
+        if row is None:
+            row = LearnerSkillBank(
+                learner_id=learner_id,
+                skill_name=bare,
+                score=round(float(new_score), 4),
+                attempt_count=1,
+                topic_hint=topic,
+                last_seen_at=now,
+            )
+        else:
+            # Rolling weighted average — preserves long-term learning
+            blended = round(row.score * 0.7 + float(new_score) * 0.3, 4)
+            row.score = max(0.0, min(1.0, blended))
+            row.attempt_count += 1
+            row.topic_hint = topic
+            row.last_seen_at = now
+
         db.add(row)
     db.flush()

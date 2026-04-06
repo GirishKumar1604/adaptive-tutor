@@ -96,4 +96,9 @@ def learn_download(task_id: str):
     video_path = result.get("canonical_video_path") or result.get("final_video_path") or result.get("video_path")
     if not video_path or not os.path.exists(video_path):
         raise HTTPException(status_code=404, detail="Video file not found")
-    return FileResponse(video_path, media_type="video/mp4", filename="lesson.mp4")
+    return FileResponse(
+        video_path,
+        media_type="video/mp4",
+        filename="lesson.mp4",
+        headers={"Accept-Ranges": "bytes"},
+    )

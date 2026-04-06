@@ -26,10 +26,14 @@ from services.persistence_service import (
     create_lesson_job,
     create_quiz_job,
     create_session as persist_session,
+    flush_skill_bank_to_mastery,
+    get_or_create_learner,
     get_remediation,
     get_session_or_404,
+    get_skill_bank,
     save_remediation,
     save_session_state,
+    update_skill_bank_from_mastery,
 )
 
 router = APIRouter()
@@ -71,6 +75,7 @@ class AdaptiveStartRequest(BaseModel):
     rag_collection_id: Optional[str] = None
     quality: str = "low"
     student_state: Optional[Dict[str, Any]] = None
+    learner_id: Optional[str] = None
 
 
 class AdaptiveStepRequest(BaseModel):
@@ -138,21 +143,33 @@ def _decide_next_action(avg: float, force_remediate: bool = False) -> Literal["R
 def adaptive_start(req: AdaptiveStartRequest):
     session_id = os.urandom(16).hex()
     job_id = os.urandom(16).hex()
-    task = celery.send_task(
-        "tasks.learn_pipeline.generate_lesson_video",
-        kwargs={
-            "job_id": job_id,
-            "topic": req.topic,
-            "preferred_language": req.preferred_language or "English",
-            "quality": req.quality or "low",
-            "student_state": req.student_state or {},
-            "rag_collection_id": req.rag_collection_id,
-        },
-    )
 
-    mastery = {skill_key(req.topic, "Core"): 0.5}
     with SessionLocal() as db:
-        persist_session(
+        # Seed mastery from the learner's skill bank if a learner_id is provided
+        if req.learner_id:
+            get_or_create_learner(db, req.learner_id)
+            bank = get_skill_bank(db, req.learner_id)
+            mastery = flush_skill_bank_to_mastery(db, learner_id=req.learner_id, topic=req.topic, skill_bank=bank)
+        else:
+            mastery = {skill_key(req.topic, "Core"): 0.5}
+
+        from services.mastery_service import avg_mastery as _avg, recommend_difficulty
+        seeded_avg = _avg(mastery)
+        difficulty_level = recommend_difficulty(seeded_avg)
+
+        task = celery.send_task(
+            "tasks.learn_pipeline.generate_lesson_video",
+            kwargs={
+                "job_id": job_id,
+                "topic": req.topic,
+                "preferred_language": req.preferred_language or "English",
+                "quality": req.quality or "low",
+                "student_state": req.student_state or {},
+                "rag_collection_id": req.rag_collection_id,
+            },
+        )
+
+        session = persist_session(
             db,
             session_id=session_id,
             job_id=job_id,
@@ -161,11 +178,13 @@ def adaptive_start(req: AdaptiveStartRequest):
             rag_collection_id=req.rag_collection_id,
             mastery=mastery,
             student_state=req.student_state or {},
-            difficulty_level="EASY",
+            difficulty_level=difficulty_level,
         )
+        session.learner_id = req.learner_id
         create_lesson_job(db, job_id=job_id, task_id=task.id, topic=req.topic, session_id=session_id)
-        add_mastery_snapshot(db, session_id=session_id, mastery=mastery, difficulty_level="EASY")
+        add_mastery_snapshot(db, session_id=session_id, mastery=mastery, difficulty_level=difficulty_level)
         db.commit()
+
     return ok(result={"session_id": session_id, "job_id": job_id, "task_id": task.id}, state="PENDING")
 
 
