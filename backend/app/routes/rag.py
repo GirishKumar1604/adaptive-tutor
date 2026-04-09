@@ -44,6 +44,9 @@ def _extract_pdf_text(raw: bytes) -> str:
 async def rag_upload(
     files: List[UploadFile] = File(...),
     collection_id: Optional[str] = Form(None),
+    topic_hint: Optional[str] = Form(None),
+    source_info: Optional[str] = Form(None),
+    force_topic_mismatch: bool = Form(False),
 ):
     cid = collection_id or os.urandom(16).hex()
 
@@ -71,7 +74,15 @@ async def rag_upload(
     try:
         info = create_collection_from_texts(collection_id=cid, texts=texts)
         with SessionLocal() as db:
-            _persist_rag_metadata(db, info["collection_id"], info.get("chunks") or [])
+            _persist_rag_metadata(
+                db,
+                info["collection_id"],
+                info.get("chunks") or [],
+                topic_hint=topic_hint,
+                source_info=source_info,
+                uploaded_files=[t[0] for t in texts],
+                force_topic_mismatch=force_topic_mismatch,
+            )
             db.commit()
     except Exception as exc:
         return fail(error=f"Failed to create collection: {type(exc).__name__}: {exc}")
@@ -86,8 +97,24 @@ async def rag_upload(
     )
 
 
-def _persist_rag_metadata(db: Session, collection_id: str, chunks: list[dict]) -> None:
-    save_rag_collection(db, collection_id=collection_id, metadata_payload={"num_chunks": len(chunks)})
+def _persist_rag_metadata(
+    db: Session,
+    collection_id: str,
+    chunks: list[dict],
+    *,
+    topic_hint: Optional[str],
+    source_info: Optional[str],
+    uploaded_files: List[str],
+    force_topic_mismatch: bool,
+) -> None:
+    metadata_payload = {
+        "num_chunks": len(chunks),
+        "topic_hint": (topic_hint or "").strip() or None,
+        "source_info": (source_info or "").strip() or None,
+        "uploaded_files": uploaded_files,
+        "force_topic_mismatch": bool(force_topic_mismatch),
+    }
+    save_rag_collection(db, collection_id=collection_id, metadata_payload=metadata_payload)
     replace_rag_chunks(db, collection_id=collection_id, chunks=chunks)
 
 

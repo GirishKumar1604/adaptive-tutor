@@ -44,6 +44,18 @@ MCQ_QUESTION_SCHEMA: Dict[str, Any] = {
     "additionalProperties": False,
 }
 
+QUIZ_BATCH_SCHEMA: Dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "questions": {
+            "type": "array",
+            "items": MCQ_QUESTION_SCHEMA,
+        }
+    },
+    "required": ["questions"],
+    "additionalProperties": False,
+}
+
 
 # -----------------------------
 # Skill key helpers (MUST align with adaptive.py + quiz.py)
@@ -141,6 +153,81 @@ def _validate_mcq_locally(q: Dict[str, Any]) -> None:
     ids = [o["id"] for o in opts]
     if set(ids) != {"A", "B", "C", "D"}:
         raise ValueError("options ids must be exactly A,B,C,D")
+
+
+def _fallback_mcq(
+    *,
+    q_index: int,
+    topic: str,
+    difficulty_hint: str,
+    skill_focus_key: str,
+) -> Dict[str, Any]:
+    skill_display = _display_skill(skill_focus_key)
+    level = (difficulty_hint or "EASY").upper()
+
+    # Deterministic fallback so quiz generation still succeeds during upstream rate limits.
+    option_sets = [
+        (
+            "B",
+            [
+                "Ignore the lesson structure and guess from keywords only.",
+                "Apply the lesson's core rule to a concrete example before choosing.",
+                "Choose the longest answer because it sounds most detailed.",
+                "Skip constraints and rely on intuition alone.",
+            ],
+            f"Best practice for {skill_display} is to apply the core rule to an example.",
+        ),
+        (
+            "C",
+            [
+                "Start from edge cases first and never define the main concept.",
+                "Memorize definitions without checking how they are used.",
+                "Identify the key relationship, then test it on the current scenario.",
+                "Treat all options as equivalent if they share terminology.",
+            ],
+            f"The strongest approach is to identify and apply the key relationship for {skill_display}.",
+        ),
+        (
+            "A",
+            [
+                "Use the stated constraints and update your reasoning step by step.",
+                "Prefer an answer that adds assumptions not present in the lesson.",
+                "Optimize for speed before checking correctness.",
+                "Ignore intermediate checks and jump to a final claim.",
+            ],
+            f"For {skill_display}, you should follow constraints and update reasoning step by step.",
+        ),
+        (
+            "D",
+            [
+                "Select a choice based on wording style instead of meaning.",
+                "Anchor on prior guess and avoid revisiting assumptions.",
+                "Skip verification when two options appear similar.",
+                "Compare options against the lesson objective and eliminate mismatches.",
+            ],
+            f"Comparing options against the lesson objective is the most reliable method for {skill_display}.",
+        ),
+    ]
+    picked = option_sets[(q_index - 1) % len(option_sets)]
+    correct, texts, explanation = picked
+
+    q = {
+        "id": f"Q{q_index}",
+        "type": "mcq",
+        "difficulty": level,
+        "skill": skill_focus_key,
+        "prompt": f"[Fallback] In {topic}, which option best demonstrates {skill_display} at {level} level?",
+        "options": [
+            {"id": "A", "text": texts[0]},
+            {"id": "B", "text": texts[1]},
+            {"id": "C", "text": texts[2]},
+            {"id": "D", "text": texts[3]},
+        ],
+        "correct_answer": correct,
+        "explanation": explanation,
+    }
+    _validate_mcq_locally(q)
+    return q
 
 
 # -----------------------------
@@ -273,6 +360,102 @@ Also set id to "Q{q_index}".
     raise RuntimeError(f"Failed to generate question Q{q_index} after retries: {last_err}")
 
 
+def _generate_batch_mcq(
+    *,
+    topic: str,
+    preferred_language: str,
+    user_goal: str,
+    student_state: Dict[str, Any],
+    context: str,
+    question_specs: List[Dict[str, Any]],  # [{index, skill_key, skill_display, difficulty}]
+) -> List[Dict[str, Any]]:
+    """
+    Generate all quiz questions in a single LLM call.
+    question_specs drives per-question skill/difficulty — same adaptive logic, one round-trip.
+    """
+    num_questions = len(question_specs)
+
+    spec_lines = "\n".join(
+        f"  Q{s['index']}: id=\"Q{s['index']}\", skill=\"{s['skill_display']}\", difficulty={s['difficulty']}"
+        for s in question_specs
+    )
+
+    system = (
+        "You are an expert tutor who writes quizzes. "
+        f"Output VALID JSON only. Language: {preferred_language}."
+    )
+
+    user = f"""
+Topic: {topic}
+User goal: {user_goal}
+
+StudentState (for reference):
+{student_state}
+
+Lesson context (use this, do not invent beyond it):
+{context}
+
+Generate exactly {num_questions} multiple-choice questions (MCQ).
+Per-question requirements (follow exactly):
+{spec_lines}
+
+Rules for EVERY question:
+- type must be "mcq"
+- EXACTLY 4 options with ids A, B, C, D
+- correct_answer MUST be one of A/B/C/D
+- Provide a short explanation
+- Make it practical and aligned to the lesson
+- Each question must be distinct — no duplicates or paraphrases
+- Set id exactly as specified above (Q1, Q2, ...)
+- Set skill exactly as the display skill name specified above
+- Set difficulty exactly as specified above
+
+Return ONLY a JSON object: {{"questions": [...]}} with {num_questions} items.
+""".strip()
+
+    last_err: Optional[Exception] = None
+    for _attempt in range(1, 3):
+        try:
+            batch = chat_json(
+                system=system,
+                user=user + (
+                    "\n\nSTRICT REQUIREMENTS:\n"
+                    "- Output JSON only. No markdown.\n"
+                    f"- questions array must have EXACTLY {num_questions} items.\n"
+                    "- Each item needs: id,type,difficulty,skill,prompt,options,correct_answer,explanation.\n"
+                    "- options must have exactly 4 items with ids A,B,C,D.\n"
+                    "- correct_answer must be A/B/C/D.\n"
+                ),
+                schema_name="quiz_batch",
+                schema=QUIZ_BATCH_SCHEMA,
+                strict=True,
+                temperature=0.1,
+                max_tokens=num_questions * 550,
+            )
+
+            raw_questions = batch.get("questions") or []
+            if len(raw_questions) != num_questions:
+                raise ValueError(
+                    f"Expected {num_questions} questions, got {len(raw_questions)}"
+                )
+
+            # Validate and enforce canonical values per question
+            validated: List[Dict[str, Any]] = []
+            for i, (q, spec) in enumerate(zip(raw_questions, question_specs)):
+                _validate_mcq_locally(q)
+                q["skill"] = spec["skill_key"]
+                q["difficulty"] = spec["difficulty"].upper()
+                q["id"] = f"Q{spec['index']}"
+                validated.append(q)
+
+            return validated
+
+        except Exception as e:
+            last_err = e
+
+    raise RuntimeError(f"Batch quiz generation failed after retries: {last_err}")
+
+
 def generate_quiz_full(
     *,
     topic: str,
@@ -302,22 +485,57 @@ def generate_quiz_full(
 
     difficulties = _pick_difficulties(num_questions, target_level)
 
-    questions: List[Dict[str, Any]] = []
+    # Build per-question specs (same adaptive logic as before)
+    question_specs = []
     for i in range(1, num_questions + 1):
-        skill_focus_key = _pick_skill_for_question(i, weakest_skill_keys, topic)
-        skill_focus_display = _display_skill(skill_focus_key)
+        skill_key = _pick_skill_for_question(i, weakest_skill_keys, topic)
+        question_specs.append({
+            "index": i,
+            "skill_key": skill_key,
+            "skill_display": _display_skill(skill_key),
+            "difficulty": difficulties[i - 1],
+        })
 
-        q = _generate_one_mcq(
-            q_index=i,
+    # --- Batch path: one API call for all questions ---
+    try:
+        questions = _generate_batch_mcq(
             topic=topic,
             preferred_language=preferred_language,
             user_goal=user_goal,
             student_state=student_state,
             context=ctx,
-            difficulty_hint=difficulties[i - 1],
-            skill_focus_key=skill_focus_key,
-            skill_focus_display=skill_focus_display,
+            question_specs=question_specs,
         )
+        return {"topic": topic, "questions": questions}
+    except Exception:
+        pass  # fall through to sequential
+
+    # --- Sequential fallback: one API call per question ---
+    questions = []
+    for spec in question_specs:
+        try:
+            q = _generate_one_mcq(
+                q_index=spec["index"],
+                topic=topic,
+                preferred_language=preferred_language,
+                user_goal=user_goal,
+                student_state=student_state,
+                context=ctx,
+                difficulty_hint=spec["difficulty"],
+                skill_focus_key=spec["skill_key"],
+                skill_focus_display=spec["skill_display"],
+            )
+        except Exception as exc:
+            q = _fallback_mcq(
+                q_index=spec["index"],
+                topic=topic,
+                difficulty_hint=spec["difficulty"],
+                skill_focus_key=spec["skill_key"],
+            )
+            print(
+                f"[quiz_agent] fallback question used for Q{spec['index']} "
+                f"topic='{topic}': {type(exc).__name__}: {exc}"
+            )
         questions.append(q)
 
     return {"topic": topic, "questions": questions}

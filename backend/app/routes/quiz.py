@@ -326,6 +326,14 @@ def quiz_reinforcement_start(req: ReinforcementStartRequest):
 
         quiz_full = _read_json(quiz_full_path)
         qmap = {q["id"]: q for q in (quiz_full.get("questions") or [])}
+        # Also include latest reinforcement pool so repeated rounds can stay targeted.
+        rein_full_path = os.path.join(job_dir, "reinforcement_full.json")
+        if os.path.exists(rein_full_path):
+            rein_full = _read_json(rein_full_path)
+            for q in (rein_full.get("questions") or []):
+                qid = q.get("id")
+                if qid:
+                    qmap[qid] = q
 
         # Collect unique skills from the wrong questions
         skill_list: List[str] = []
@@ -360,17 +368,56 @@ def quiz_reinforcement_start(req: ReinforcementStartRequest):
             segments = segs_obj.get("segments", []) or []
             ctx = _segments_to_context(segments) or ctx
 
-        # Generate one question per wrong skill (capped at num_questions)
-        num_to_gen = min(req.num_questions, max(len(skill_list), 1))
+        # Generate the requested number of reinforcement questions.
+        # Do not cap by unique skill count; if all misses map to one skill
+        # (common for Topic::Core), still produce a full follow-up set.
+        num_to_gen = max(1, int(req.num_questions or 3))
         questions: List[Dict[str, Any]] = []
+        wrong_focus_lines: List[str] = []
+        for qid in req.wrong_question_ids:
+            q = qmap.get(qid)
+            if not q:
+                continue
+            prompt = " ".join((q.get("prompt") or "").split())[:160]
+            exp = " ".join((q.get("explanation") or "").split())[:180]
+            if prompt:
+                wrong_focus_lines.append(f"- Missed concept: {prompt}")
+            if exp:
+                wrong_focus_lines.append(f"  Correct idea: {exp}")
+
+        if wrong_focus_lines:
+            ctx = (
+                f"{ctx}\n\nPrevious weak areas to target:\n"
+                + "\n".join(wrong_focus_lines[:10])
+            ).strip()
+
+        existing_prompt_texts = []
+        for q in (quiz_full.get("questions") or []):
+            p = " ".join((q.get("prompt") or "").split())
+            if p:
+                existing_prompt_texts.append(p)
+        if os.path.exists(rein_full_path):
+            rein_full = _read_json(rein_full_path)
+            for q in (rein_full.get("questions") or []):
+                p = " ".join((q.get("prompt") or "").split())
+                if p:
+                    existing_prompt_texts.append(p)
+
         for i in range(num_to_gen):
             skill_key = skill_list[i % len(skill_list)]
             skill_display = _display_skill(skill_key)
+            avoid_line = (
+                "Avoid repeating these exact prompts: "
+                + " | ".join(existing_prompt_texts[:8])
+            ) if existing_prompt_texts else ""
             q = _generate_one_mcq(
                 q_index=i + 1,
                 topic=req.topic,
                 preferred_language=req.preferred_language or "English",
-                user_goal="Reinforce and deepen understanding of concepts missed in the quiz.",
+                user_goal=(
+                    "Reinforce and deepen understanding of concepts missed in the quiz. "
+                    f"Generate a fresh variant for round {i + 1}. {avoid_line}"
+                ).strip(),
                 student_state=student_state,
                 context=ctx,
                 difficulty_hint=reinforcement_difficulty,

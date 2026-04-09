@@ -8,6 +8,30 @@ from collections import Counter, defaultdict
 from typing import Any, List, Dict, Optional, Tuple
 
 RAG_DIR = os.getenv("RAG_DIR", "/app/app/storage/rag")
+COMMON_TOKENS = {
+    "a",
+    "an",
+    "and",
+    "are",
+    "as",
+    "at",
+    "be",
+    "by",
+    "for",
+    "from",
+    "how",
+    "in",
+    "is",
+    "it",
+    "of",
+    "on",
+    "or",
+    "that",
+    "the",
+    "this",
+    "to",
+    "with",
+}
 
 
 def _ensure_dir(path: str) -> None:
@@ -18,6 +42,14 @@ def _tokenize(text: str) -> List[str]:
     text = (text or "").lower()
     # keep words + numbers
     return re.findall(r"[a-z0-9]+", text)
+
+
+def _content_tokens(text: str) -> set[str]:
+    return {
+        tok
+        for tok in _tokenize(text)
+        if len(tok) >= 3 and tok not in COMMON_TOKENS
+    }
 
 
 def _chunk_text(text: str, *, max_chars: int = 900, overlap: int = 120) -> List[str]:
@@ -214,14 +246,20 @@ def query_collection_with_sources(
 
     scored.sort(reverse=True, key=lambda x: x[0])
     picked = scored[: max(1, top_k)]
+    top_score = float(scored[0][0]) if scored else 0.0
 
     out_parts: List[str] = []
     sources: List[Dict[str, str]] = []
+    matched_tokens: set[str] = set()
+    query_terms = _content_tokens(question)
     used = 0
     for score, cid, source in picked:
         c = chunks_by_id.get(cid)
         if not c:
             continue
+        if query_terms:
+            chunk_terms = _content_tokens(c.get("text") or "")
+            matched_tokens |= (query_terms & chunk_terms)
         block = f"[Source: {source} | Chunk: {cid}]\n{c['text']}".strip()
         if used + len(block) > max_chars:
             remaining = max_chars - used
@@ -232,4 +270,11 @@ def query_collection_with_sources(
         sources.append({"source": source, "chunk_id": str(cid), "score": f"{score:.4f}"})
         used += len(block) + 2
 
-    return {"context": "\n\n---\n\n".join(out_parts).strip(), "sources": sources}
+    overlap_ratio = (len(matched_tokens) / len(query_terms)) if query_terms else 0.0
+    return {
+        "context": "\n\n---\n\n".join(out_parts).strip(),
+        "sources": sources,
+        "top_score": round(top_score, 6),
+        "num_hits": len(scored),
+        "overlap_ratio": round(overlap_ratio, 6),
+    }

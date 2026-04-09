@@ -31,9 +31,12 @@ export const api = {
     rag_collection_id?: string | null;
     learner_id?: string | null;
   }) => req<{ session_id: string; job_id: string; task_id: string }>("/adaptive/start", { method: "POST", body: JSON.stringify(payload) }),
-  ragUpload: async (files: File[]) => {
+  ragUpload: async (files: File[], options?: { topic_hint?: string; source_info?: string; force_topic_mismatch?: boolean }) => {
     const form = new FormData();
     files.forEach((f) => form.append("files", f));
+    if (options?.topic_hint) form.append("topic_hint", options.topic_hint);
+    if (options?.source_info) form.append("source_info", options.source_info);
+    if (options?.force_topic_mismatch !== undefined) form.append("force_topic_mismatch", String(options.force_topic_mismatch));
     const res = await fetch(`${API_BASE}/rag/upload`, { method: "POST", body: form });
     if (!res.ok) throw new Error(await res.text());
     return (await res.json()) as ApiEnvelope<{ collection_id: string; num_chunks: number; uploaded_files: string[]; skipped_files: string[] }>;

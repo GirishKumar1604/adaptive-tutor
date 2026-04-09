@@ -57,15 +57,30 @@ REMEDIATION_SCHEMA: Dict[str, Any] = {
                 "properties": {
                     "id": {"type": "string"},
                     "prompt": {"type": "string"},
-                    "options": {"type": "array", "minItems": 4, "maxItems": 4},
+                    "options": {
+                        "type": "array",
+                        "minItems": 4,
+                        "maxItems": 4,
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {"type": "string", "enum": ["A", "B", "C", "D"]},
+                                "text": {"type": "string"},
+                            },
+                            "required": ["id", "text"],
+                            "additionalProperties": False,
+                        },
+                    },
                     "correct_answer": {"type": "string", "enum": ["A", "B", "C", "D"]},
                     "explanation": {"type": "string"},
                 },
                 "required": ["id", "prompt", "options", "correct_answer", "explanation"],
+                "additionalProperties": False,
             },
         },
     },
     "required": ["topic", "focus_skills", "difficulty", "bullets", "tiny_example", "checks"],
+    "additionalProperties": False,
 }
 
 
@@ -128,7 +143,64 @@ Return JSON:
         schema=REMEDIATION_SCHEMA,
         strict=True,
         temperature=0.2,
+        max_tokens=2800,
     )
+
+
+def _fallback_remediation(*, topic: str, difficulty: str, focus_skills: List[str]) -> Dict[str, Any]:
+    focus = focus_skills[:3] if focus_skills else ["Core"]
+    return {
+        "topic": topic,
+        "focus_skills": focus,
+        "difficulty": difficulty if difficulty in {"EASY", "MEDIUM", "HARD"} else "EASY",
+        "bullets": [
+            f"Restate {topic} in one sentence before solving.",
+            "Identify known inputs and the expected output clearly.",
+            "Apply the core rule step by step; avoid skipping transitions.",
+            "Verify intermediate values against constraints.",
+            "Check one concrete example end-to-end.",
+            "Summarize the final takeaway in plain language.",
+        ],
+        "tiny_example": f"Mini example for {topic}: list inputs, apply one step, and verify the output.",
+        "checks": [
+            {
+                "id": "R1",
+                "prompt": "What is the most reliable first step before solving?",
+                "options": [
+                    {"id": "A", "text": "Guess the final answer directly"},
+                    {"id": "B", "text": "Restate the problem and identify inputs/outputs"},
+                    {"id": "C", "text": "Ignore constraints to move faster"},
+                    {"id": "D", "text": "Pick the longest option"},
+                ],
+                "correct_answer": "B",
+                "explanation": "Clarifying the problem and variables prevents avoidable mistakes.",
+            },
+            {
+                "id": "R2",
+                "prompt": "During problem solving, what should be done after each step?",
+                "options": [
+                    {"id": "A", "text": "Skip checks to save time"},
+                    {"id": "B", "text": "Change method randomly"},
+                    {"id": "C", "text": "Verify intermediate values against constraints"},
+                    {"id": "D", "text": "Always restart from scratch"},
+                ],
+                "correct_answer": "C",
+                "explanation": "Intermediate verification catches drift early.",
+            },
+            {
+                "id": "R3",
+                "prompt": "Which action best consolidates learning after solving?",
+                "options": [
+                    {"id": "A", "text": "Memorize the final number only"},
+                    {"id": "B", "text": "Skip recap and move on"},
+                    {"id": "C", "text": "Try unrelated shortcuts"},
+                    {"id": "D", "text": "Summarize the key takeaway in plain language"},
+                ],
+                "correct_answer": "D",
+                "explanation": "A short recap improves transfer and retention.",
+            },
+        ],
+    }
 
 
 def _decide_next_action(avg: float, force_remediate: bool = False) -> Literal["REMEDIATE", "NEXT_QUIZ", "ADVANCE"]:
@@ -331,12 +403,19 @@ def adaptive_remediate(req: RemediateRequest):
             return fail(error="session_id not found")
         mastery = session.mastery or {}
         focus = weakest_skills(mastery) or ["Core"]
-        data = _build_remediation(
-            topic=session.topic,
-            lang=session.preferred_language,
-            difficulty=session.difficulty_level,
-            focus_skills=focus,
-        )
+        try:
+            data = _build_remediation(
+                topic=session.topic,
+                lang=session.preferred_language,
+                difficulty=session.difficulty_level,
+                focus_skills=focus,
+            )
+        except Exception:
+            data = _fallback_remediation(
+                topic=session.topic,
+                difficulty=session.difficulty_level,
+                focus_skills=focus,
+            )
         payload = {
             **data,
             "session_id": session.id,
@@ -412,7 +491,7 @@ def adaptive_remediation_submit(req: RemediationSubmitRequest):
             },
             score=score,
         )
-        action = _decide_next_action(avg_mastery(state["mastery"]))
+        next_action = _decide_next_action(avg_mastery(state["mastery"]))
         save_session_state(
             db,
             session,
@@ -420,7 +499,9 @@ def adaptive_remediation_submit(req: RemediationSubmitRequest):
                 "mastery": state["mastery"],
                 "student_state": state["student_state"],
                 "difficulty_level": state["difficulty_level"],
-                "last_action": action,
+                # Mark the remediation cycle as completed so the next adaptive step
+                # can move back into a quiz instead of chaining remediation forever.
+                "last_action": "REMEDIATION_SUBMIT",
                 "last_quiz_task_id": session.last_quiz_task_id,
                 "last_remediation_path": session.last_remediation_path,
             },
@@ -450,7 +531,7 @@ def adaptive_remediation_submit(req: RemediationSubmitRequest):
                 "updated_state": {
                     "mastery": state["mastery"],
                     "difficulty_level": state["difficulty_level"],
-                    "next_action": action,
+                    "next_action": next_action,
                 },
             }
         )
@@ -462,7 +543,18 @@ def adaptive_step(req: AdaptiveStepRequest):
         session = get_session_or_404(db, req.session_id)
         if not session:
             return fail(error="session_id not found")
-        action = _decide_next_action(avg_mastery(session.mastery or {}), req.force_remediate)
+
+        # Always let a fresh session see at least one quiz before remediation.
+        if not req.force_remediate and not session.last_quiz_task_id:
+            action = "NEXT_QUIZ"
+        # After a remediation submission, route back to a quiz to assess progress.
+        elif not req.force_remediate and session.last_action == "REMEDIATION_SUBMIT":
+            action = "NEXT_QUIZ"
+        # If we're already in a quiz progression flow, keep retrying quiz generation.
+        elif not req.force_remediate and session.last_action == "NEXT_QUIZ":
+            action = "NEXT_QUIZ"
+        else:
+            action = _decide_next_action(avg_mastery(session.mastery or {}), req.force_remediate)
     if action == "REMEDIATE":
         return adaptive_remediate(RemediateRequest(session_id=req.session_id))
     return adaptive_next_quiz(AdaptiveNextQuizRequest(session_id=req.session_id, num_questions=req.num_questions))

@@ -10,7 +10,7 @@ from typing import Any, Dict, Optional
 
 from celery_app import celery
 from db import session_scope
-from models import JobStatus
+from models import JobStatus, RagCollection
 from services.groq_client import chat_json
 from services.persistence_service import upsert_lesson_job_result
 from services.rag_service import query_collection_with_sources
@@ -111,9 +111,11 @@ TEMPLATE_REQUIRED_TOKENS = {
     "flow": ["RoundedRectangle(", "Arrow("],
     "timeline": ["RoundedRectangle(", "Arrow("],
     "concept": ["Circle(", "RoundedRectangle(", "Line("],
-    "pseudocode": ["RoundedRectangle(", "while low <= high:"],
+    "pseudocode": ["RoundedRectangle("],
     "checklist": ["RoundedRectangle("],
 }
+RAG_RELEVANCE_MIN_SCORE = float(os.getenv("RAG_RELEVANCE_MIN_SCORE", "0.12"))
+RAG_RELEVANCE_MIN_TOPIC_OVERLAP = float(os.getenv("RAG_RELEVANCE_MIN_TOPIC_OVERLAP", "0.08"))
 
 SEGMENTS_SCHEMA = {
     "type": "object",
@@ -174,6 +176,59 @@ def _py_str(s: str) -> str:
     return f"\"{s}\""
 
 
+def _topic_tokens(text: str) -> set[str]:
+    return {t for t in re.findall(r"[a-z0-9]+", (text or "").lower()) if len(t) >= 3}
+
+
+def _read_rag_collection_metadata(collection_id: str) -> dict[str, Any]:
+    with session_scope() as db:
+        row = db.get(RagCollection, collection_id)
+        return (row.metadata_payload or {}) if row else {}
+
+
+def _select_lesson_rag_context(*, collection_id: str, topic: str, goal: str) -> tuple[str, list[dict[str, str]], Optional[str], dict[str, Any]]:
+    rag_data = query_collection_with_sources(
+        collection_id=collection_id,
+        question=f"{topic}\nGoal: {goal}",
+        top_k=5,
+        max_chars=1800,
+    )
+    rag_context = rag_data.get("context") or ""
+    rag_sources = rag_data.get("sources") or []
+
+    top_score = float(rag_data.get("top_score") or 0.0)
+    overlap_ratio = float(rag_data.get("overlap_ratio") or 0.0)
+    num_hits = int(rag_data.get("num_hits") or 0)
+    metadata = _read_rag_collection_metadata(collection_id)
+    topic_hint = (metadata.get("topic_hint") or "").strip()
+    allow_mismatch = bool(metadata.get("force_topic_mismatch"))
+
+    relevance = {
+        "top_score": top_score,
+        "overlap_ratio": overlap_ratio,
+        "num_hits": num_hits,
+        "score_threshold": RAG_RELEVANCE_MIN_SCORE,
+        "overlap_threshold": RAG_RELEVANCE_MIN_TOPIC_OVERLAP,
+    }
+
+    if topic_hint:
+        requested_tokens = _topic_tokens(topic)
+        hint_tokens = _topic_tokens(topic_hint)
+        topic_overlap = (len(requested_tokens & hint_tokens) / len(requested_tokens)) if requested_tokens else 0.0
+        relevance["topic_hint"] = topic_hint
+        relevance["topic_hint_overlap"] = round(topic_overlap, 6)
+        if topic_overlap == 0.0 and not allow_mismatch:
+            return "", [], "skipped: topic_hint mismatch", relevance
+
+    low_relevance = (num_hits <= 0) or (not rag_context.strip()) or (
+        top_score < RAG_RELEVANCE_MIN_SCORE and overlap_ratio < RAG_RELEVANCE_MIN_TOPIC_OVERLAP
+    )
+    if low_relevance:
+        return "", [], "skipped: low relevance", relevance
+
+    return rag_context, rag_sources, None, relevance
+
+
 def _split_on_screen_points(raw: str) -> list[str]:
     text = (raw or "").replace("\n", ";")
     parts: list[str] = []
@@ -228,18 +283,18 @@ def _fallback_visual_plan(seg_title: str, seg_narration: str, seg_on_screen: str
         return {
             "template": "pseudocode",
             "layout": "Code panel with variable tracker",
-            "elements": _clip_lines(elements or ["while loop", "mid update", "low high tracker"], 4),
-            "sequence": ["compute mid", "compare target", "move low or high", "repeat"],
-            "emphasis": ["low", "mid", "high"],
+            "elements": _clip_lines(elements or ["input", "condition", "state update"], 4),
+            "sequence": ["read input", "evaluate condition", "update state", "repeat"],
+            "emphasis": ["condition", "state", "result"],
             "example": seg_on_screen or seg_narration,
         }
     if any(k in lower for k in ["edge case", "recap", "summary", "checklist"]):
         return {
             "template": "checklist",
             "layout": "Checklist cards with recap",
-            "elements": _clip_lines(elements or ["empty array", "duplicates", "safe midpoint"], 4),
-            "sequence": ["show edge cases", "show safeguards", "recap"],
-            "emphasis": ["edge cases", "recap"],
+            "elements": _clip_lines(elements or ["key point one", "key point two", "key point three"], 4),
+            "sequence": ["show key points", "highlight takeaway", "recap"],
+            "emphasis": ["recap", "takeaway"],
             "example": seg_on_screen or seg_narration,
         }
     if any(k in lower for k in ["linear search vs", "compare", "side-by-side", "versus"]):
@@ -345,6 +400,30 @@ def _template_bullets(seg_title: str, visual_plan: dict[str, Any]) -> list[str]:
     return _clip_lines(bullet_pool, 3)
 
 
+def _is_binary_search_context(*, topic: str, seg_title: str, seg_narration: str, seg_on_screen: str, visual_plan: dict[str, Any]) -> bool:
+    text = " ".join(
+        [
+            topic or "",
+            seg_title or "",
+            seg_narration or "",
+            seg_on_screen or "",
+            " ".join(visual_plan.get("elements") or []),
+            " ".join(visual_plan.get("sequence") or []),
+            " ".join(visual_plan.get("emphasis") or []),
+            visual_plan.get("example") or "",
+        ]
+    ).lower()
+    keys = [
+        "binary search",
+        "linear search",
+        "midpoint",
+        "low pointer",
+        "high pointer",
+        "o(log n)",
+    ]
+    return any(k in text for k in keys)
+
+
 def _parse_array_values(*texts: str) -> list[int]:
     for text in texts:
         match = re.search(r"\[([0-9,\s-]+)\]", text or "")
@@ -362,6 +441,78 @@ def _parse_target_value(*texts: str, values: list[int]) -> int:
         if match:
             return int(match.group(1))
     return values[min(len(values) // 2, len(values) - 1)]
+
+
+def _extract_formula_expression(*texts: str) -> str:
+    def _clean(expr: str) -> str:
+        cleaned = " ".join((expr or "").strip().split())
+        cleaned = cleaned.strip(" ,.;:")
+        if not cleaned:
+            return ""
+        if re.search(r"\bO\s*\(", cleaned, flags=re.IGNORECASE):
+            cleaned = re.sub(r"\blog\b", r"\\log", cleaned, flags=re.IGNORECASE)
+        return cleaned
+
+    candidates: list[str] = []
+    for raw in texts:
+        text = " ".join((raw or "").split())
+        if not text:
+            continue
+
+        candidates.extend(re.findall(r"\$([^$]{3,90})\$", text))
+        candidates.extend(re.findall(r"`([^`]{3,90})`", text))
+        candidates.extend(re.findall(r"\b(?:O|Omega|Theta|Θ|Ω)\s*\(\s*[^()]{1,40}\)", text, flags=re.IGNORECASE))
+        candidates.extend(
+            re.findall(
+                r"[A-Za-z0-9()^+\-·\s]{2,48}(?:->|→|=>|⇌)[A-Za-z0-9()^+\-·\s]{2,48}",
+                text,
+            )
+        )
+        candidates.extend(
+            re.findall(
+                r"(?:[A-Za-z]\s*)?[A-Za-z0-9_()^/*+\- ]{1,36}(?:=|<=|>=|<|>)[A-Za-z0-9_()^/*+\- ]{1,36}",
+                text,
+            )
+        )
+
+    for candidate in candidates:
+        expr = _clean(candidate)
+        if 3 <= len(expr) <= 90:
+            return expr
+
+    merged = " ".join((t or "") for t in texts).lower()
+    if "photosynthesis" in merged:
+        return r"6CO_2 + 6H_2O + light \rightarrow C_6H_{12}O_6 + 6O_2"
+    if "log" in merged:
+        return r"O(\log n)"
+    return r"x + y = z"
+
+
+def _formula_example_for_topic(topic: str) -> str:
+    t = (topic or "").lower()
+    if "photosynthesis" in t:
+        return "6CO2 + 6H2O + light -> C6H12O6 + 6O2"
+    if "binary search" in t:
+        return "mid = low + (high - low) // 2"
+    return f"Core rule for {topic}"
+
+
+def _formula_title_for_topic(topic: str) -> str:
+    t = (topic or "").lower()
+    if "photosynthesis" in t:
+        return "Overall Photosynthesis Equation"
+    if "binary search" in t:
+        return "Binary Search Core Formula"
+    return f"Core Formula for {topic}"
+
+
+def _formula_onscreen_for_topic(topic: str) -> str:
+    t = (topic or "").lower()
+    if "photosynthesis" in t:
+        return "Balanced reaction with reactants, products, and light energy."
+    if "binary search" in t:
+        return "Midpoint update rule and interval shrink logic."
+    return "Compact rule and meaning of each part."
 
 
 def _binary_search_steps(values: list[int], target: int) -> list[dict[str, Any]]:
@@ -392,8 +543,8 @@ def _validate_scene_code(*, scene_code: str, template: str, visual_plan: dict[st
     for pattern in SCENE_FORBIDDEN_PATTERNS:
         if pattern.search(scene_code):
             raise RuntimeError(f"Scene validator: forbidden CE-incompatible pattern matched: {pattern.pattern}")
-    if ".to_edge(UP" not in scene_code or ".to_corner(UL" not in scene_code:
-        raise RuntimeError("Scene validator: missing stable title or sidebar layout anchors.")
+    if ".to_edge(UP" not in scene_code:
+        raise RuntimeError("Scene validator: missing stable title anchor.")
 
     rendered_text = " ".join(re.findall(r"Text\((?:f)?['\"]([^'\"]+)['\"]", scene_code))
     if _looks_like_placeholder_visual_text(rendered_text):
@@ -436,11 +587,11 @@ def _write_segment_scene_file(
     scene_file = os.path.join(GENERATED_DIR, f"lesson_{job_id.replace('-', '_')}_seg_{segment_idx:02d}.py")
     t = max(2.8, float(target_duration))
 
-    header_rt = min(1.1, max(0.6, t * 0.11))
-    bullets_rt = min(1.2, max(0.7, t * 0.13))
-    visual_rt = min(2.6, max(1.3, t * 0.22))
-    outro_rt = min(1.0, max(0.55, t * 0.10))
-    hold = max(0.18, t - (header_rt + bullets_rt + visual_rt + outro_rt))
+    # Keep intros/outros short and spend most time on actual visual animation.
+    header_rt = min(1.0, max(0.55, t * 0.10))
+    outro_rt = min(0.8, max(0.35, t * 0.08))
+    visual_rt = max(1.8, t - (header_rt + outro_rt + 0.16))
+    hold = max(0.08, t - (header_rt + visual_rt + outro_rt))
 
     template = _select_template(
         seg_title=seg_title,
@@ -448,7 +599,16 @@ def _write_segment_scene_file(
         seg_on_screen=seg_on_screen,
         visual_plan=visual_plan,
     )
-    bullet_points = _template_bullets(seg_title=seg_title, visual_plan=visual_plan)
+    is_binary = _is_binary_search_context(
+        topic=topic,
+        seg_title=seg_title,
+        seg_narration=seg_narration,
+        seg_on_screen=seg_on_screen,
+        visual_plan=visual_plan,
+    )
+    visual_elements = list(visual_plan.get("elements") or [])
+    visual_sequence = list(visual_plan.get("sequence") or [])
+    visual_emphasis = list(visual_plan.get("emphasis") or [])
 
     lines: list[str] = []
     lines.append("from manim import *")
@@ -458,30 +618,17 @@ def _write_segment_scene_file(
     lines.append("        self.camera.background_color = '#f4f7fb'")
     lines.append("        Text.set_default(color='#102240')")
     lines.append("        MathTex.set_default(color='#102240')")
-    lines.append("        sidebar = RoundedRectangle(width=4.15, height=5.4, corner_radius=0.16, color=BLUE_D, stroke_opacity=0.32)")
-    lines.append("        sidebar.set_fill('#ffffff', opacity=0.92)")
-    lines.append("        sidebar.to_corner(UL, buff=0.36).shift(DOWN * 0.48)")
-    lines.append(f"        heading = Text({_py_str(topic)}, font_size=22, color='#3564c8')")
+    lines.append(f"        heading = Text({_py_str(topic)}, font_size=28, color='#3564c8')")
     lines.append("        if heading.width > 11.6:")
     lines.append("            heading.scale_to_fit_width(11.6)")
-    lines.append("        heading.to_edge(UP, buff=0.28)")
-    lines.append(f"        seg = Text({_py_str(seg_title)}, font_size=24, color='#0f264f')")
+    lines.append("        heading.to_edge(UP, buff=0.22)")
+    lines.append(f"        seg = Text({_py_str(seg_title)}, font_size=32, color='#0f264f')")
     lines.append("        if seg.width > 10.8:")
     lines.append("            seg.scale_to_fit_width(10.8)")
-    lines.append("        seg.next_to(heading, DOWN, buff=0.24)")
-    lines.append(f"        bullet_lines = {repr(bullet_points)}")
-    lines.append("        bullets = VGroup(*[")
-    lines.append("            Text(f'- {b}', font_size=16, color='#586782') for b in bullet_lines")
-    lines.append("        ])")
-    lines.append("        for b in bullets:")
-    lines.append("            if b.width > 3.9:")
-    lines.append("                b.scale_to_fit_width(3.9)")
-    lines.append("        bullets.arrange(DOWN, aligned_edge=LEFT, buff=0.14)")
-    lines.append("        bullets.next_to(sidebar.get_top(), DOWN, buff=0.72).align_to(sidebar, LEFT).shift(RIGHT * 0.28)")
-    lines.append(f"        self.play(FadeIn(sidebar, shift=RIGHT * 0.08), FadeIn(heading, shift=DOWN * 0.1), Write(seg), run_time={header_rt:.3f})")
-    lines.append(f"        self.play(LaggedStart(*[Write(b) for b in bullets], lag_ratio=0.16), run_time={bullets_rt:.3f})")
+    lines.append("        seg.next_to(heading, DOWN, buff=0.18)")
+    lines.append(f"        self.play(FadeIn(heading, shift=DOWN * 0.1), Write(seg), run_time={header_rt:.3f})")
 
-    if template == "comparison":
+    if template == "comparison" and is_binary:
         lines.append("        values = [2, 4, 7, 10, 13, 16, 19, 22]")
         lines.append("        left_title = Text('Linear search', font_size=22, color=RED_B).move_to(LEFT * 3.15 + DOWN * 0.15)")
         lines.append("        right_title = Text('Binary search', font_size=22, color=GREEN_B).move_to(RIGHT * 3.05 + DOWN * 0.15)")
@@ -499,7 +646,36 @@ def _write_segment_scene_file(
         lines.append("        binary_hit = right_boxes[4].copy().set_fill(GREEN_E, opacity=0.32)")
         lines.append(f"        self.play(FadeIn(binary_hit), run_time={visual_rt*0.15:.3f})")
         lines.append("        visual_group = VGroup(left_title, right_title, left_boxes, right_boxes, left_labels, right_labels, scan_arrow, range_rect, mid_arrow, note, binary_hit)")
-    elif template == "array":
+    elif template == "comparison":
+        compare_titles = _clip_lines(visual_elements + visual_emphasis, 2) or ["Approach A", "Approach B"]
+        compare_points = _clip_lines(visual_sequence + visual_elements + visual_emphasis, 4) or [
+            "Observe input",
+            "Apply method",
+            "Compare outcome",
+            "Summarize insight",
+        ]
+        lines.append("        left_card = RoundedRectangle(width=4.15, height=3.45, corner_radius=0.18, color=RED_D).set_fill('#fff0ec', opacity=0.92).move_to(LEFT * 2.4 + DOWN * 0.7)")
+        lines.append("        right_card = RoundedRectangle(width=4.15, height=3.45, corner_radius=0.18, color=BLUE_D).set_fill('#ecf5ff', opacity=0.92).move_to(RIGHT * 2.4 + DOWN * 0.7)")
+        lines.append(f"        left_title = Text({_py_str(compare_titles[0])}, font_size=24, color=RED_B).next_to(left_card.get_top(), DOWN, buff=0.18)")
+        lines.append(f"        right_title = Text({_py_str(compare_titles[1])}, font_size=24, color=BLUE_B).next_to(right_card.get_top(), DOWN, buff=0.18)")
+        lines.append(f"        left_lines = {repr(compare_points[:2])}")
+        lines.append(f"        right_lines = {repr(compare_points[2:4] if len(compare_points) >= 4 else compare_points[:2])}")
+        lines.append("        left_body = VGroup(*[Text(s, font_size=18, color='#4a5568') for s in left_lines]).arrange(DOWN, aligned_edge=LEFT, buff=0.14)")
+        lines.append("        right_body = VGroup(*[Text(s, font_size=18, color='#4a5568') for s in right_lines]).arrange(DOWN, aligned_edge=LEFT, buff=0.14)")
+        lines.append("        left_body.move_to(left_card.get_center() + DOWN * 0.22)")
+        lines.append("        right_body.move_to(right_card.get_center() + DOWN * 0.22)")
+        lines.append("        divider = DashedLine(UP * 1.7, DOWN * 1.9, color=GREY_B).move_to(ORIGIN + DOWN * 0.68)")
+        lines.append("        left_strip = VGroup(*[Square(side_length=0.34, color=RED_D).set_fill('#ffd8cf', opacity=0.9) for _ in range(5)]).arrange(RIGHT, buff=0.05).next_to(left_card, DOWN, buff=0.18)")
+        lines.append("        right_strip = VGroup(*[Square(side_length=0.34, color=BLUE_D).set_fill('#dbeeff', opacity=0.9) for _ in range(5)]).arrange(RIGHT, buff=0.05).next_to(right_card, DOWN, buff=0.18)")
+        lines.append("        flow_arrow = Arrow(left_card.get_right(), right_card.get_left(), buff=0.14, color=YELLOW_B)")
+        lines.append(f"        self.play(Create(left_card), Create(right_card), FadeIn(divider), run_time={visual_rt*0.24:.3f})")
+        lines.append(f"        self.play(Create(left_strip), Create(right_strip), GrowArrow(flow_arrow), run_time={visual_rt*0.18:.3f})")
+        lines.append(f"        self.play(Write(left_title), Write(right_title), run_time={visual_rt*0.20:.3f})")
+        lines.append(f"        self.play(FadeIn(left_body, shift=UP*0.08), FadeIn(right_body, shift=UP*0.08), run_time={visual_rt*0.38:.3f})")
+        lines.append("        focus = SurroundingRectangle(right_card, buff=0.06, color=YELLOW_B)")
+        lines.append(f"        self.play(Create(focus), run_time={visual_rt*0.10:.3f})")
+        lines.append("        visual_group = VGroup(left_card, right_card, left_title, right_title, left_body, right_body, left_strip, right_strip, flow_arrow, divider, focus)")
+    elif template == "array" and is_binary:
         values = _parse_array_values(seg_title, seg_narration, seg_on_screen, visual_plan.get("example", ""))
         target = _parse_target_value(seg_title, seg_narration, seg_on_screen, visual_plan.get("example", ""), values=values)
         steps = _binary_search_steps(values, target)
@@ -509,7 +685,7 @@ def _write_segment_scene_file(
         lines.append("        labels = VGroup(*[Text(str(v), font_size=18) for v in values])")
         lines.append("        for box, label in zip(boxes, labels):")
         lines.append("            label.move_to(box.get_center())")
-        lines.append("        arr = VGroup(boxes, labels).next_to(seg, DOWN, buff=0.7).shift(RIGHT * 1.4)")
+        lines.append("        arr = VGroup(boxes, labels).next_to(seg, DOWN, buff=0.62)")
         lines.append("        def span_rect(lo, hi):")
         lines.append("            return SurroundingRectangle(VGroup(*[boxes[i] for i in range(lo, hi + 1)]), buff=0.06, color=YELLOW_B)")
         lines.append("        def pointer(idx, drift, color):")
@@ -543,9 +719,38 @@ def _write_segment_scene_file(
         lines.append(f"        found_box = boxes[{steps[-1]['mid']}].copy().set_fill(GREEN_E, opacity=0.32)")
         lines.append(f"        self.play(FadeIn(found_box), run_time={max(0.22, visual_rt*0.10):.3f})")
         lines.append("        visual_group = VGroup(arr, range_rect, low_arrow, mid_arrow, high_arrow, tags, target_card, comparison, found_box)")
-    elif template == "graph":
+    elif template == "array":
+        stage_labels = _clip_lines(visual_elements + visual_sequence + visual_emphasis, 8) or [
+            "Step 1",
+            "Step 2",
+            "Step 3",
+            "Step 4",
+            "Step 5",
+            "Step 6",
+            "Step 7",
+            "Step 8",
+        ]
+        stage_labels = (stage_labels + [f"Step {i}" for i in range(1, 9)])[:8]
+        lines.append("        boxes = VGroup(*[Square(side_length=0.92, color=BLUE_D).set_fill('#e7f0ff', opacity=0.92) for _ in range(8)]).arrange(RIGHT, buff=0.08)")
+        lines.append("        boxes.next_to(seg, DOWN, buff=0.72)")
+        lines.append(f"        labels_raw = {repr(stage_labels)}")
+        lines.append("        labels = VGroup(*[Text(s, font_size=14, color='#1f3557') for s in labels_raw])")
+        lines.append("        for box, label in zip(boxes, labels):")
+        lines.append("            if label.width > 0.78:")
+        lines.append("                label.scale_to_fit_width(0.78)")
+        lines.append("            label.move_to(box)")
+        lines.append(f"        self.play(Create(boxes), FadeIn(labels), run_time={visual_rt*0.34:.3f})")
+        lines.append("        active = SurroundingRectangle(boxes[0], buff=0.06, color=YELLOW_B)")
+        lines.append("        pointer = Arrow(boxes[0].get_bottom() + DOWN * 0.48, boxes[0].get_bottom() + DOWN * 0.06, buff=0.04, color=BLUE_B)")
+        lines.append(f"        self.play(Create(active), GrowArrow(pointer), run_time={visual_rt*0.12:.3f})")
+        lines.append(f"        self.play(active.animate.move_to(boxes[3]), pointer.animate.put_start_and_end_on(boxes[3].get_bottom() + DOWN * 0.48, boxes[3].get_bottom() + DOWN * 0.06), run_time={visual_rt*0.16:.3f})")
+        lines.append(f"        self.play(active.animate.move_to(boxes[6]), pointer.animate.put_start_and_end_on(boxes[6].get_bottom() + DOWN * 0.48, boxes[6].get_bottom() + DOWN * 0.06), run_time={visual_rt*0.16:.3f})")
+        lines.append("        callout = Text('Sequence across stages', font_size=20, color='#586782').next_to(boxes, DOWN, buff=0.28)")
+        lines.append(f"        self.play(Write(callout), run_time={visual_rt*0.14:.3f})")
+        lines.append("        visual_group = VGroup(boxes, labels, active, pointer, callout)")
+    elif template == "graph" and is_binary:
         lines.append("        axes = Axes(x_range=[1, 8, 1], y_range=[0, 8, 1], x_length=5.0, y_length=3.2, axis_config={'color': GREY_B})")
-        lines.append("        axes.next_to(seg, DOWN, buff=0.7).shift(RIGHT * 1.35)")
+        lines.append("        axes.next_to(seg, DOWN, buff=0.62)")
         lines.append("        linear = Line(axes.c2p(1, 1), axes.c2p(7.3, 7.0), color=RED_B)")
         lines.append("        log_curve = VMobject(color=GREEN_B)")
         lines.append("        log_curve.set_points_smoothly([axes.c2p(1, 1), axes.c2p(2, 2.3), axes.c2p(3, 3.1), axes.c2p(4, 3.8), axes.c2p(6, 4.7), axes.c2p(8, 5.2)])")
@@ -562,9 +767,26 @@ def _write_segment_scene_file(
         lines.append("        ).arrange(DOWN, aligned_edge=LEFT, buff=0.12).next_to(axes, DOWN, buff=0.28).align_to(axes, LEFT)")
         lines.append(f"        self.play(FadeIn(labels), Write(table), run_time={visual_rt*0.22:.3f})")
         lines.append("        visual_group = VGroup(axes, linear, log_curve, labels, table)")
-    elif template == "pseudocode":
+    elif template == "graph":
+        trend_labels = _clip_lines(visual_emphasis + visual_elements, 2) or ["Trend A", "Trend B"]
+        graph_notes = _clip_lines(visual_sequence + visual_elements, 3) or ["Input rises", "Pattern shifts", "Key takeaway"]
+        lines.append("        axes = Axes(x_range=[0, 10, 2], y_range=[0, 10, 2], x_length=6.2, y_length=3.8, axis_config={'color': GREY_B})")
+        lines.append("        axes.next_to(seg, DOWN, buff=0.62)")
+        lines.append("        baseline = Line(axes.c2p(0, 2), axes.c2p(10, 2), color=GREY_C)")
+        lines.append("        curve_a = VMobject(color=BLUE_B)")
+        lines.append("        curve_a.set_points_smoothly([axes.c2p(0, 1.5), axes.c2p(2, 2.6), axes.c2p(4, 4.0), axes.c2p(6, 5.1), axes.c2p(8, 6.4), axes.c2p(10, 7.7)])")
+        lines.append("        curve_b = VMobject(color=GREEN_B)")
+        lines.append("        curve_b.set_points_smoothly([axes.c2p(0, 1.0), axes.c2p(2, 1.9), axes.c2p(4, 2.7), axes.c2p(6, 3.9), axes.c2p(8, 4.8), axes.c2p(10, 5.6)])")
+        lines.append(f"        label_a = Text({_py_str(trend_labels[0])}, font_size=18, color=BLUE_B).next_to(axes, LEFT, buff=0.22).shift(UP*1.3)")
+        lines.append(f"        label_b = Text({_py_str(trend_labels[1])}, font_size=18, color=GREEN_B).next_to(axes, LEFT, buff=0.22).shift(UP*0.7)")
+        lines.append(f"        self.play(Create(axes), Create(baseline), run_time={visual_rt*0.24:.3f})")
+        lines.append(f"        self.play(Create(curve_a), Create(curve_b), FadeIn(label_a), FadeIn(label_b), run_time={visual_rt*0.42:.3f})")
+        lines.append(f"        notes = VGroup(*[Text(s, font_size=18, color='#586782') for s in {repr(graph_notes)}]).arrange(DOWN, aligned_edge=LEFT, buff=0.12).next_to(axes, DOWN, buff=0.26).align_to(axes, LEFT)")
+        lines.append(f"        self.play(Write(notes), run_time={visual_rt*0.24:.3f})")
+        lines.append("        visual_group = VGroup(axes, baseline, curve_a, curve_b, label_a, label_b, notes)")
+    elif template == "pseudocode" and is_binary:
         lines.append("        code_frame = RoundedRectangle(width=6.4, height=3.7, corner_radius=0.18, color=BLUE_D).set_fill('#ffffff', opacity=0.96)")
-        lines.append("        code_frame.next_to(seg, DOWN, buff=0.72).shift(RIGHT * 1.2)")
+        lines.append("        code_frame.next_to(seg, DOWN, buff=0.62)")
         lines.append("        code_lines = VGroup(")
         lines.append("            Text('while low <= high:', font_size=22),")
         lines.append("            Text('    mid = (low + high) // 2', font_size=22),")
@@ -587,11 +809,44 @@ def _write_segment_scene_file(
         lines.append(f"        self.play(Create(focus), FadeIn(tracker), FadeIn(tracker_labels), run_time={visual_rt*0.32:.3f})")
         lines.append(f"        self.play(Transform(focus, SurroundingRectangle(code_lines[3], buff=0.08, color=BLUE_B)), Transform(tracker_labels[0], Text('low=4', font_size=18, color=BLUE_B).move_to(tracker[0])), run_time={visual_rt*0.26:.3f})")
         lines.append("        visual_group = VGroup(code_frame, code_lines, tracker, tracker_labels, focus)")
+    elif template == "pseudocode":
+        pseudo_lines = _clip_lines(visual_sequence + visual_elements + [visual_plan.get("example") or ""], 5) or [
+            "Read input",
+            "Apply rule",
+            "Update state",
+            "Check condition",
+            "Return result",
+        ]
+        pseudo_lines = [f"{i+1}. {line}" for i, line in enumerate(pseudo_lines[:5])]
+        tracker_vals = _clip_lines(visual_emphasis + visual_elements, 3) or ["input", "state", "output"]
+        lines.append("        code_frame = RoundedRectangle(width=7.1, height=4.1, corner_radius=0.18, color=BLUE_D).set_fill('#ffffff', opacity=0.96)")
+        lines.append("        code_frame.next_to(seg, DOWN, buff=0.62)")
+        lines.append(f"        code_lines = VGroup(*[Text(s, font_size=22) for s in {repr(pseudo_lines)}]).arrange(DOWN, aligned_edge=LEFT, buff=0.16).move_to(code_frame.get_center())")
+        lines.append("        focus = SurroundingRectangle(code_lines[1], buff=0.08, color=YELLOW_B)")
+        lines.append("        tracker = VGroup(")
+        lines.append("            RoundedRectangle(width=1.8, height=0.62, corner_radius=0.12, color=BLUE_B),")
+        lines.append("            RoundedRectangle(width=1.8, height=0.62, corner_radius=0.12, color=YELLOW_B),")
+        lines.append("            RoundedRectangle(width=1.8, height=0.62, corner_radius=0.12, color=GREEN_B),")
+        lines.append("        ).arrange(RIGHT, buff=0.22).next_to(code_frame, DOWN, buff=0.28)")
+        lines.append(f"        tracker_labels = VGroup(*[Text(s, font_size=17) for s in {repr(tracker_vals)}])")
+        lines.append("        for card, label in zip(tracker, tracker_labels):")
+        lines.append("            if label.width > 1.55:")
+        lines.append("                label.scale_to_fit_width(1.55)")
+        lines.append("            label.move_to(card)")
+        lines.append(f"        self.play(Create(code_frame), Write(code_lines), run_time={visual_rt*0.42:.3f})")
+        lines.append(f"        self.play(Create(focus), FadeIn(tracker), FadeIn(tracker_labels), run_time={visual_rt*0.30:.3f})")
+        lines.append(f"        self.play(Transform(focus, SurroundingRectangle(code_lines[min(3, len(code_lines)-1)], buff=0.08, color=BLUE_B)), run_time={visual_rt*0.20:.3f})")
+        lines.append("        visual_group = VGroup(code_frame, code_lines, tracker, tracker_labels, focus)")
     elif template == "formula":
-        formula_expr = r"O(\log n)" if "log" in (seg_title + ' ' + seg_on_screen).lower() else r"ax^2 + bx + c = 0"
+        formula_expr = _extract_formula_expression(
+            visual_plan.get("example", ""),
+            seg_on_screen,
+            seg_narration,
+            seg_title,
+        )
         lines.append(f"        expr = {_py_str(formula_expr)}")
         lines.append("        frame = RoundedRectangle(width=6.8, height=2.35, corner_radius=0.22, color=BLUE_D)")
-        lines.append("        frame.next_to(seg, DOWN, buff=0.8).shift(RIGHT * 1.0)")
+        lines.append("        frame.next_to(seg, DOWN, buff=0.62)")
         lines.append("        try:")
         lines.append("            formula = MathTex(expr, color=YELLOW_B)")
         lines.append("            formula.scale_to_fit_width(6.0)")
@@ -621,7 +876,7 @@ def _write_segment_scene_file(
         lines.append("        visual_group = VGroup(left, mid, right, labels, a1, a2)")
     elif template == "timeline":
         lines.append("        cards = VGroup(*[RoundedRectangle(width=2.0, height=1.0, corner_radius=0.16, color=BLUE_D).set_fill('#edf4ff', opacity=0.96) for _ in range(3)]).arrange(RIGHT, buff=0.34)")
-        lines.append("        cards.next_to(seg, DOWN, buff=0.9).shift(RIGHT * 1.1)")
+        lines.append("        cards.next_to(seg, DOWN, buff=0.72)")
         lines.append("        labels = VGroup(")
         lines.append("            Text('First', font_size=18).move_to(cards[0]),")
         lines.append("            Text('Next', font_size=18).move_to(cards[1]),")
@@ -640,24 +895,26 @@ def _write_segment_scene_file(
         lines.append(f"        self.play(Create(emphasis_box), run_time={visual_rt*0.20:.3f})")
         lines.append("        visual_group = VGroup(cards, labels, arrows, recap, emphasis_box)")
     elif template == "checklist":
+        checklist_items = _clip_lines(visual_elements + visual_emphasis, 3) or ["Key point one", "Key point two", "Key point three"]
+        summary_line = " ".join((seg_narration or "").split())[:96] or "Review these points to lock in the concept."
         lines.append("        cards = VGroup(")
         lines.append("            RoundedRectangle(width=2.5, height=0.95, corner_radius=0.16, color=RED_D).set_fill('#ffe7e5', opacity=0.95),")
         lines.append("            RoundedRectangle(width=2.5, height=0.95, corner_radius=0.16, color=YELLOW_D).set_fill('#fff4d8', opacity=0.95),")
         lines.append("            RoundedRectangle(width=2.5, height=0.95, corner_radius=0.16, color=GREEN_D).set_fill('#e4f7e8', opacity=0.95),")
-        lines.append("        ).arrange(DOWN, buff=0.2).move_to(RIGHT * 1.2 + DOWN * 0.8)")
+        lines.append("        ).arrange(DOWN, buff=0.2).move_to(DOWN * 0.85)")
         lines.append("        labels = VGroup(")
-        lines.append("            Text('Empty array', font_size=20).move_to(cards[0]),")
-        lines.append("            Text('Duplicates', font_size=20).move_to(cards[1]),")
-        lines.append("            Text('Safe midpoint', font_size=20).move_to(cards[2]),")
+        lines.append(f"            Text({_py_str(checklist_items[0])}, font_size=20).move_to(cards[0]),")
+        lines.append(f"            Text({_py_str(checklist_items[1])}, font_size=20).move_to(cards[1]),")
+        lines.append(f"            Text({_py_str(checklist_items[2])}, font_size=20).move_to(cards[2]),")
         lines.append("        )")
-        lines.append("        summary = Text('Handle the bounds carefully and binary search stays fast and reliable.', font_size=20, color='#586782')")
+        lines.append(f"        summary = Text({_py_str(summary_line)}, font_size=20, color='#586782')")
         lines.append("        summary.scale_to_fit_width(6.2)")
         lines.append("        summary.next_to(cards, DOWN, buff=0.3)")
         lines.append(f"        self.play(Create(cards), Write(labels), run_time={visual_rt*0.48:.3f})")
         lines.append(f"        self.play(Write(summary), run_time={visual_rt*0.30:.3f})")
         lines.append("        visual_group = VGroup(cards, labels, summary)")
     else:
-        lines.append("        center = Circle(radius=0.96, color=BLUE_D).set_fill('#e3efff', opacity=0.95).shift(DOWN * 0.5 + RIGHT * 0.9)")
+        lines.append("        center = Circle(radius=1.1, color=BLUE_D).set_fill('#e3efff', opacity=0.95).shift(DOWN * 0.55)")
         lines.append("        center_label = Text('Core idea', font_size=20).move_to(center)")
         lines.append("        n1 = RoundedRectangle(width=2.0, height=0.82, corner_radius=0.14, color=TEAL_D).set_fill('#e3faf4', opacity=0.96).move_to(LEFT * 2.5 + DOWN * 0.3)")
         lines.append("        n2 = RoundedRectangle(width=2.0, height=0.82, corner_radius=0.14, color=TEAL_D).set_fill('#e3faf4', opacity=0.96).move_to(RIGHT * 3.2 + DOWN * 0.3)")
@@ -677,7 +934,7 @@ def _write_segment_scene_file(
         lines.append("        visual_group = VGroup(center, center_label, n1, n2, n3, labels, links)")
 
     lines.append(f"        self.wait({hold:.3f})")
-    lines.append(f"        self.play(FadeOut(visual_group), FadeOut(bullets), FadeOut(seg), FadeOut(sidebar), run_time={outro_rt:.3f})")
+    lines.append(f"        self.play(FadeOut(visual_group), FadeOut(seg), run_time={outro_rt:.3f})")
     lines.append("        self.wait(0.02)")
 
     scene_code = "\n".join(lines)
@@ -717,7 +974,172 @@ def _generate_segments(
     lang: str,
     student_state: Dict[str, Any],
     rag_context: str,
-) -> list[dict]:
+) -> tuple[list[dict], dict[str, Any]]:
+    def _fallback_segments_for_topic() -> list[dict]:
+        t = (topic or "this topic").strip()
+        return [
+            {
+                "id": 1,
+                "title": f"Core Problem in {t}",
+                "narration": f"Let's start with the core problem behind {t} and why this idea matters before details.",
+                "on_screen": f"Problem statement and motivation for {t}.",
+                "duration_sec": 8,
+                "visual_plan": {
+                    "template": "concept",
+                    "layout": "Core idea with supporting reasons",
+                    "elements": ["core idea", "context", "impact"],
+                    "sequence": ["state problem", "show why it matters", "preview approach"],
+                    "emphasis": ["problem", "intuition"],
+                    "example": f"Real-world motivation for {t}",
+                },
+            },
+            {
+                "id": 2,
+                "title": f"{t}: Key Components",
+                "narration": f"We break {t} into a few concrete components so each part is easy to reason about.",
+                "on_screen": "Key components and how they connect.",
+                "duration_sec": 9,
+                "visual_plan": {
+                    "template": "flow",
+                    "layout": "Input to process to output",
+                    "elements": ["input", "transformation", "output"],
+                    "sequence": ["show inputs", "apply process", "show outputs"],
+                    "emphasis": ["input", "process", "output"],
+                    "example": f"Simple component flow for {t}",
+                },
+            },
+            {
+                "id": 3,
+                "title": f"{t}: Worked Example",
+                "narration": "Now we run one concrete example end to end and track the state at each step.",
+                "on_screen": "Worked example with evolving state.",
+                "duration_sec": 11,
+                "visual_plan": {
+                    "template": "timeline",
+                    "layout": "Ordered steps with transitions",
+                    "elements": ["step 1", "step 2", "step 3"],
+                    "sequence": ["initialize", "update", "finalize"],
+                    "emphasis": ["state", "transition"],
+                    "example": f"Example walkthrough for {t}",
+                },
+            },
+            {
+                "id": 4,
+                "title": f"{t}: Contrast Case",
+                "narration": "A side-by-side comparison shows where this method improves over a simpler baseline.",
+                "on_screen": "Baseline versus improved method.",
+                "duration_sec": 9,
+                "visual_plan": {
+                    "template": "comparison",
+                    "layout": "Two panels with highlighted differences",
+                    "elements": ["baseline", "improved method", "difference marker"],
+                    "sequence": ["present both", "animate contrast", "state takeaway"],
+                    "emphasis": ["tradeoff", "benefit"],
+                    "example": f"Baseline versus {t}",
+                },
+            },
+            {
+                "id": 5,
+                "title": _formula_title_for_topic(t),
+                "narration": "We summarize the essential rule in a compact expression you can apply consistently.",
+                "on_screen": _formula_onscreen_for_topic(t),
+                "duration_sec": 8,
+                "visual_plan": {
+                    "template": "formula",
+                    "layout": "Formula card plus short annotation",
+                    "elements": ["expression", "term labels", "note"],
+                    "sequence": ["write expression", "highlight terms", "interpret"],
+                    "emphasis": ["rule", "interpretation"],
+                    "example": _formula_example_for_topic(t),
+                },
+            },
+            {
+                "id": 6,
+                "title": f"{t}: Scaling Behavior",
+                "narration": "As input size grows, we look at how the method behaves and where it stays efficient.",
+                "on_screen": "Trend chart and key scaling insight.",
+                "duration_sec": 9,
+                "visual_plan": {
+                    "template": "graph",
+                    "layout": "Axes with trend lines",
+                    "elements": ["axes", "trend line", "reference line"],
+                    "sequence": ["draw axes", "plot trend", "highlight implication"],
+                    "emphasis": ["growth", "efficiency"],
+                    "example": f"Scaling behavior for {t}",
+                },
+            },
+            {
+                "id": 7,
+                "title": f"{t}: Pitfalls and Recap",
+                "narration": "We close with typical mistakes, safeguards, and a short recap to lock in the intuition.",
+                "on_screen": "Pitfall checklist and final recap.",
+                "duration_sec": 8,
+                "visual_plan": {
+                    "template": "checklist",
+                    "layout": "Checklist cards with recap",
+                    "elements": ["pitfall 1", "pitfall 2", "safeguard"],
+                    "sequence": ["list pitfalls", "add safeguards", "recap"],
+                    "emphasis": ["pitfalls", "safeguards"],
+                    "example": f"Checklist for applying {t} safely",
+                },
+            },
+        ]
+
+    def _coerce_segments(raw_data: Any) -> list[dict]:
+        if isinstance(raw_data, dict):
+            raw_segments = raw_data.get("segments")
+        elif isinstance(raw_data, list):
+            raw_segments = raw_data
+        else:
+            raw_segments = None
+
+        if not isinstance(raw_segments, list):
+            return []
+
+        cleaned: list[dict] = []
+        for idx, seg in enumerate(raw_segments, start=1):
+            if not isinstance(seg, dict):
+                continue
+            title = str(seg.get("title") or f"Segment {idx}").strip()
+            narration = str(seg.get("narration") or "").strip()
+            on_screen = str(seg.get("on_screen") or "").strip()
+            if not narration:
+                narration = f"This segment explains a key part of {topic}."
+            if not on_screen:
+                on_screen = f"Visual explanation for {title}."
+
+            raw_id = seg.get("id")
+            try:
+                seg_id = int(raw_id)
+            except Exception:
+                seg_id = idx
+
+            try:
+                dur = float(seg.get("duration_sec") or 8)
+            except Exception:
+                dur = 8.0
+            dur = max(2.0, min(16.0, dur))
+
+            cleaned.append(
+                {
+                    "id": seg_id,
+                    "title": title,
+                    "narration": narration,
+                    "on_screen": on_screen,
+                    "duration_sec": round(dur, 2),
+                    "visual_plan": seg.get("visual_plan") if isinstance(seg.get("visual_plan"), dict) else {},
+                }
+            )
+
+        if len(cleaned) < 6:
+            return []
+
+        # Keep lesson length bounded and re-index IDs for stable downstream rendering.
+        cleaned = cleaned[:10]
+        for i, seg in enumerate(cleaned, start=1):
+            seg["id"] = i
+        return cleaned
+
     system = f"You are an expert tutor. Output VALID JSON only. Language: {lang}."
     user = f"""
 Topic: {topic}
@@ -761,11 +1183,16 @@ For each segment output:
                     "- include id,title,narration,on_screen,duration_sec,visual_plan for each segment.\n"
                     "- Prefer concrete visual plans over generic slides.\n"
                     "- Use Manim Community Edition style only: real mobjects, grouped layout, and no planner-note text as on-screen copy.\n"
+                    "- Do not design any persistent left sidebar, notes panel, or bullet checklist box.\n"
+                    "- Use full-canvas compositions with a single clear focal visual per beat.\n"
+                    "- Prefer large, high-contrast shapes and labels for crisp readability.\n"
                     "- For binary search, include sorted array examples, low/mid/high pointers, shrinking interval, pseudocode, and O(log n) comparison visuals.\n"
+                    "- Make segment titles topic-specific; avoid generic titles such as 'Rules or Formula' or 'Compare With a Baseline'.\n"
+                    "- Every segment must include concrete domain terms in on_screen or example (molecules, variables, datasets, units, or named components).\n"
                 ),
                 schema_name="lesson_segments",
                 schema=SEGMENTS_SCHEMA,
-                strict=True,
+                strict=False,
                 temperature=0.2,
                 max_tokens=4000,
             )
@@ -773,6 +1200,10 @@ For each segment output:
         except Exception as e:
             last_err = e
             prompt = user + f"\n\nPrevious output failed validation: {str(e)[:220]}...\nRegenerate from scratch."
+    parsed = _coerce_segments(data)
+    if parsed:
+        return parsed, {"mode": "model", "error": None}
+
     if data is None:
         if "binary search" in topic.lower():
             return [
@@ -881,9 +1312,34 @@ For each segment output:
                         "example": "mid = low + (high - low) // 2",
                     },
                 },
-            ]
-        raise RuntimeError(f"Failed to generate segments after retries: {last_err}")
-    return data["segments"]
+            ], {"mode": "binary_hardcoded_fallback", "error": str(last_err) if last_err else "empty_model_output"}
+        # Keep pipeline moving with a deterministic fallback for any topic.
+        return _fallback_segments_for_topic(), {"mode": "topic_fallback", "error": str(last_err) if last_err else "empty_model_output"}
+
+    # If the model returned data but not in the expected shape, avoid hard-fail.
+    if "binary search" in topic.lower():
+        return [
+            {
+                "id": 1,
+                "title": "Binary Search Overview",
+                "narration": "Binary search repeatedly halves a sorted search space to find the target quickly.",
+                "on_screen": "Sorted array and shrinking search bounds.",
+                "duration_sec": 8,
+                "visual_plan": {
+                    "template": "array",
+                    "layout": "Sorted array with pointers",
+                    "elements": ["array", "low pointer", "mid pointer", "high pointer"],
+                    "sequence": ["set bounds", "compare midpoint", "shrink interval"],
+                    "emphasis": ["low", "mid", "high"],
+                    "example": "Find 13 in [2,4,7,10,13,16,19,22]",
+                },
+            }
+        ] + _fallback_segments_for_topic()[1:], {"mode": "binary_repair_fallback", "error": str(last_err) if last_err else "invalid_model_shape"}
+
+    if last_err:
+        # Surface context to logs while still returning fallback content.
+        print(f"[learn_pipeline] segment generation fallback used for topic='{topic}': {type(last_err).__name__}: {last_err}")
+    return _fallback_segments_for_topic(), {"mode": "topic_fallback", "error": str(last_err) if last_err else "invalid_model_shape"}
 
 
 @celery.task(name="tasks.learn_pipeline.generate_lesson_video", bind=True)
@@ -905,21 +1361,20 @@ def generate_lesson_video(
     rag_context = ""
     rag_sources = []
     rag_error = None
+    rag_skip_reason = None
+    rag_gate = {}
     if rag_collection_id:
         try:
-            rag_data = query_collection_with_sources(
+            rag_context, rag_sources, rag_skip_reason, rag_gate = _select_lesson_rag_context(
                 collection_id=rag_collection_id,
-                question=f"{topic}\nGoal: {goal}",
-                top_k=5,
-                max_chars=1800,
+                topic=topic,
+                goal=goal,
             )
-            rag_context = rag_data.get("context", "")
-            rag_sources = rag_data.get("sources", [])
         except Exception as e:
             rag_error = f"{type(e).__name__}: {e}"
             rag_context = ""
 
-    segments = _generate_segments(
+    segments, segment_gen = _generate_segments(
         topic=topic,
         goal=goal,
         lang=lang,
@@ -945,7 +1400,7 @@ def generate_lesson_video(
 
     segments_path = os.path.join(job_dir, "segments.json")
     with open(segments_path, "w", encoding="utf-8") as f:
-        json.dump({"segments": segments}, f, ensure_ascii=False, indent=2)
+        json.dump({"segments": segments, "generation": segment_gen}, f, ensure_ascii=False, indent=2)
 
     script_text = "\n\n".join([f"{s['id']}. {s['title']}\n{s['narration']}" for s in segments])
     script_path = os.path.join(job_dir, "script.txt")
@@ -1032,6 +1487,9 @@ def generate_lesson_video(
         "topic": topic,
         "rag_collection_id": rag_collection_id,
         "rag_sources": rag_sources,
+        "rag_gate": rag_gate,
+        "used_rag_for_lesson": bool(rag_context),
+        "rag_skip_reason": rag_skip_reason,
         "rag_error": rag_error,
         "segments_path": segments_path,
         "script_path": script_path,
@@ -1043,6 +1501,8 @@ def generate_lesson_video(
         "canonical_video_path": final_video_path,
         "render_plan_path": render_plan_path,
         "tts_error": tts_error,
+        "segment_generation_mode": segment_gen.get("mode"),
+        "segment_generation_error": segment_gen.get("error"),
         "generated_at": datetime.utcnow().isoformat() + "Z",
         "sync_strategy": "segment_audio_first_duration_lock",
     }

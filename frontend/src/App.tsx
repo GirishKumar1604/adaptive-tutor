@@ -127,6 +127,7 @@ export function App() {
 
   const [ragCollectionId, setRagCollectionId] = useState("");
   const [ragFiles, setRagFiles] = useState<File[]>([]);
+  const [useRagForLessonStart, setUseRagForLessonStart] = useState(false);
 
   const [readyChecks, setReadyChecks] = useState<Record<string, boolean> | null>(null);
 
@@ -160,6 +161,27 @@ export function App() {
     setChat((prev) => [...prev, { role, text }]);
   }
 
+  function resetForFreshLessonStart() {
+    setLessonReady(false);
+    setLessonReadyAnnounced(false);
+    setLessonTaskId("");
+    setJobId("");
+    setDetails(null);
+    setShowQuizArea(false);
+    setQuiz(null);
+    setQuizAnswers({});
+    setRemediation(null);
+    setRemAnswers({});
+    setQuizResult(null);
+    setShowAnswerReview(false);
+    setReinforcementPhase("none");
+    setReinforcementQuiz(null);
+    setReinforcementAnswers({});
+    setReinforcementResult(null);
+    setSessionId("");
+    localStorage.removeItem("session_id");
+  }
+
   useEffect(() => {
     const node = chatStreamRef.current;
     if (!node) return;
@@ -181,9 +203,10 @@ export function App() {
         if (terminalFailure) {
           closed = true;
           window.clearInterval(timerRef.current);
-          const errMsg = res.error || res.result?.error || "Lesson generation failed. Please try again.";
-          setStatus(`Error: ${errMsg}`);
-          setChat((prev) => [...prev, { role: "assistant", text: `Lesson generation failed: ${errMsg}` }]);
+          const rawErr = res.error || res.result?.error || "";
+          const friendlyErr = rawErr.length > 120 ? "Lesson generation failed. Please try again." : rawErr || "Lesson generation failed. Please try again.";
+          setStatus(`Error: ${friendlyErr}`);
+          setChat((prev) => [...prev, { role: "assistant", text: `Lesson generation failed. Please try again.` }]);
           return;
         }
 
@@ -221,7 +244,11 @@ export function App() {
   async function onUploadRag() {
     if (!ragFiles.length) return;
     try {
-      const res = await api.ragUpload(ragFiles);
+      const cleanTopic = topic.trim();
+      const res = await api.ragUpload(ragFiles, {
+        topic_hint: cleanTopic || undefined,
+        source_info: "frontend_upload",
+      });
       setRagCollectionId(res.result.collection_id);
       setDetails(res.result);
       pushChat("assistant", `Attached your notes and indexed ${res.result.num_chunks} chunks for context.`);
@@ -235,6 +262,7 @@ export function App() {
     const clean = topicText.trim();
     if (!clean) return;
     setIsStarted(true);
+    resetForFreshLessonStart();
 
     try {
       setStatus("Preparing your lesson...");
@@ -244,8 +272,8 @@ export function App() {
       const res = await api.adaptiveStart({
         topic: clean,
         preferred_language: language,
-        quality: "low",
-        rag_collection_id: ragCollectionId || null,
+        quality: "medium",
+        rag_collection_id: useRagForLessonStart ? (ragCollectionId || null) : null,
         learner_id: LEARNER_ID,
       });
 
@@ -253,15 +281,6 @@ export function App() {
       setJobId(res.result.job_id);
       setLessonTaskId(res.result.task_id);
       localStorage.setItem("session_id", res.result.session_id);
-      setLessonReady(false);
-      setLessonReadyAnnounced(false);
-      setShowQuizArea(false);
-      setQuiz(null);
-      setRemediation(null);
-      setQuizResult(null);
-      setReinforcementPhase("none");
-      setReinforcementQuiz(null);
-      setReinforcementResult(null);
 
       pushChat("assistant", "Great choice! I'm crafting your personalized lesson now.");
     } catch (err: any) {
@@ -273,6 +292,7 @@ export function App() {
     const clean = topicText.trim();
     if (!clean) return;
     setIsStarted(true);
+    resetForFreshLessonStart();
 
     try {
       setStatus("Starting diagnosis...");
@@ -334,12 +354,26 @@ export function App() {
     }
   }
 
+  async function ensureJobId(): Promise<string> {
+    if (jobId) return jobId;
+    if (!sessionId) throw new Error("Missing session_id.");
+
+    const sessionRes = await api.getSession(sessionId);
+    if (sessionRes.error) throw new Error(sessionRes.error);
+    const resolved = sessionRes.result?.job_id;
+    if (!resolved) throw new Error("Missing job_id for this session. Restart the lesson and try again.");
+    setJobId(resolved);
+    return resolved;
+  }
+
   async function onAdaptiveStep(forceRemediate = false) {
     if (!sessionId) return;
     try {
       const QUIZ_POLL_TIMEOUT_MS = 90_000;
       const QUIZ_POLL_INTERVAL_MS = 1400;
       const res = await api.adaptiveStep({ session_id: sessionId, num_questions: 5, force_remediate: forceRemediate });
+      if (res.error) throw new Error(res.error);
+      if (res.result?.job_id) setJobId(res.result.job_id);
 
       if (res.result?.remediation) {
         setRemediation(res.result.remediation);
@@ -386,17 +420,18 @@ export function App() {
   async function onSubmitQuiz() {
     if (!sessionId || !quiz) return;
     try {
+      const resolvedJobId = await ensureJobId();
       const payload = {
         session_id: sessionId,
-        job_id: jobId,
+        job_id: resolvedJobId,
         topic,
         preferred_language: language,
         answers: (quiz.questions || []).map((q: any) => ({ question_id: q.id, answer: quizAnswers[q.id] || "" })),
       };
       const res = await api.submitQuiz(payload);
+      if (res.error) throw new Error(res.error);
       setDetails(res.result);
       setQuizResult(res.result);
-      setShowAnswerReview(false);
       setReinforcementPhase("none");
       setReinforcementQuiz(null);
       setReinforcementResult(null);
@@ -407,11 +442,19 @@ export function App() {
       const correct = summary?.correct ?? 0;
       const total = summary?.total_questions ?? 0;
       const suggestions: string[] = adaptive?.suggestions ?? [];
+      const wrongIds: string[] = (res.result?.results ?? [])
+        .filter((r: any) => !r.correct)
+        .map((r: any) => r.question_id as string);
 
       let msg = `Quiz complete! You got ${correct}/${total} correct (${score}%).`;
       if (suggestions.length) msg += ` ${suggestions[0]}`;
       pushChat("assistant", msg);
-      setStatus("Quiz submitted");
+      if (score < 80 && wrongIds.length > 0) {
+        pushChat("assistant", "I’m preparing a targeted follow-up set now so you can reach mastery.");
+        await startReinforcementRound(wrongIds, "auto");
+      } else {
+        setStatus("Quiz submitted");
+      }
     } catch (err: any) {
       setStatus(`Failed: ${err.message}`);
     }
@@ -426,49 +469,68 @@ export function App() {
       };
       const res = await api.remediationSubmit(payload);
       setDetails(res.result);
-      pushChat("assistant", "Great. I'll reinforce this in your next adaptive step.");
+
+      const correct = res.result?.correct ?? 0;
+      const total = res.result?.total ?? 0;
+      const score = res.result?.score_percent ?? 0;
+      pushChat("assistant", `Remediation complete! You got ${correct}/${total} correct (${score}%). Click Next Quiz to continue.`);
       setStatus("Remediation submitted");
+
+      // Clear remediation so the UI doesn't stay stuck
+      setRemediation(null);
+      setRemAnswers({});
     } catch (err: any) {
       setStatus(`Failed: ${err.message}`);
     }
   }
 
-  async function onStartReinforcement() {
-    if (!sessionId || !jobId || !quizResult) return;
-    const wrongIds: string[] = (quizResult.results ?? [])
-      .filter((r: any) => !r.correct)
-      .map((r: any) => r.question_id as string);
-    if (!wrongIds.length) return;
-
+  async function startReinforcementRound(wrongIds: string[], mode: "manual" | "auto" = "manual") {
+    if (!sessionId || !wrongIds.length) return;
     setReinforcementPhase("loading");
     setReinforcementQuiz(null);
     setReinforcementAnswers({});
     setReinforcementResult(null);
 
     try {
+      const resolvedJobId = await ensureJobId();
       const res = await api.reinforcementStart({
         session_id: sessionId,
-        job_id: jobId,
+        job_id: resolvedJobId,
         topic,
         preferred_language: language,
         wrong_question_ids: wrongIds,
         num_questions: Math.min(wrongIds.length, 3),
       });
+      if (res.error) throw new Error(res.error);
       setReinforcementQuiz(res.result);
       setReinforcementPhase("active");
-      pushChat("assistant", `🔥 Reinforcement round ready! ${res.result.questions?.length} harder questions targeting your weak areas.`);
+      if (mode === "manual") {
+        pushChat("assistant", `🔥 Reinforcement round ready! ${res.result.questions?.length} harder questions targeting your weak areas.`);
+      } else {
+        pushChat("assistant", `Follow-up set is ready: ${res.result.questions?.length} targeted questions.`);
+      }
+      setStatus("Follow-up quiz ready");
     } catch (err: any) {
       setReinforcementPhase("none");
       setStatus(`Reinforcement failed: ${err.message}`);
     }
   }
 
+  async function onStartReinforcement() {
+    if (!quizResult) return;
+    const wrongIds: string[] = (quizResult.results ?? [])
+      .filter((r: any) => !r.correct)
+      .map((r: any) => r.question_id as string);
+    await startReinforcementRound(wrongIds, "manual");
+  }
+
   async function onSubmitReinforcement() {
-    if (!sessionId || !jobId || !reinforcementQuiz) return;
+    if (!sessionId || !reinforcementQuiz) return;
     try {
+      const resolvedJobId = await ensureJobId();
       const res = await api.reinforcementSubmit({
         session_id: sessionId,
-        job_id: jobId,
+        job_id: resolvedJobId,
         topic,
         preferred_language: language,
         answers: (reinforcementQuiz.questions || []).map((q: any) => ({
@@ -476,6 +538,7 @@ export function App() {
           answer: reinforcementAnswers[q.id] || "",
         })),
       });
+      if (res.error) throw new Error(res.error);
       setReinforcementResult(res.result);
       setReinforcementPhase("done");
 
@@ -486,7 +549,15 @@ export function App() {
       const total = summary?.total_questions ?? 0;
       const newMastery = Math.round((adaptive?.avg_mastery ?? 0) * 100);
       pushChat("assistant", `Reinforcement done! ${correct}/${total} correct (${score}%). Mastery now at ${newMastery}%.`);
-      setStatus("Reinforcement submitted");
+      const wrongIds: string[] = (res.result?.results ?? [])
+        .filter((r: any) => !r.correct)
+        .map((r: any) => r.question_id as string);
+      if (score < 80 && wrongIds.length > 0) {
+        pushChat("assistant", "You’re close. I’ll generate another targeted set to keep the feedback loop going.");
+        await startReinforcementRound(wrongIds, "auto");
+      } else {
+        setStatus("Reinforcement submitted");
+      }
     } catch (err: any) {
       setStatus(`Reinforcement submit failed: ${err.message}`);
     }
@@ -609,6 +680,15 @@ export function App() {
                   Upload ({ragFiles.length})
                 </button>
               )}
+              <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--text-subtle)" }}>
+                <input
+                  type="checkbox"
+                  checked={useRagForLessonStart}
+                  onChange={(e) => setUseRagForLessonStart(e.target.checked)}
+                  disabled={!ragCollectionId}
+                />
+                Use uploaded notes for this lesson
+              </label>
             </div>
             {ragFiles.length > 0 && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", marginTop: 8 }}>
@@ -955,26 +1035,52 @@ export function App() {
                           </div>
                         )}
 
-                        {/* Per-question review (toggle, only before reinforcement) */}
-                        {reinforcementPhase === "none" && (
-                          <>
-                            <button
-                              className="btn-toggle-review"
-                              onClick={() => setShowAnswerReview((v) => !v)}
-                            >
-                              {showAnswerReview ? "▲ Hide answer review" : "▼ Review answers"}
-                            </button>
+                        {/* Per-question breakdown — always shown after submission */}
+                        {reinforcementPhase === "none" && results.length > 0 && (() => {
+                          const qMap: Record<string, any> = {};
+                          (quiz?.questions || []).forEach((q: any) => { qMap[q.id] = q; });
+                          return (
+                            <div className="result-section">
+                              <p className="result-section-title">Question Breakdown</p>
+                              {results.map((r: any) => {
+                                const q = qMap[r.question_id];
+                                return (
+                                  <div key={r.question_id} className={`result-question-row ${r.correct ? "row-correct" : "row-wrong"}`}>
+                                    <div className="result-q-indicator">{r.correct ? "✓" : "✗"}</div>
+                                    <div className="result-q-body">
+                                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                                        <span className="result-q-id">{r.question_id}</span>
+                                        <span style={{
+                                          fontSize: 12, fontWeight: 600,
+                                          color: r.correct ? "var(--green, #22c55e)" : "var(--red, #ef4444)",
+                                          background: r.correct ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)",
+                                          borderRadius: 6, padding: "2px 8px",
+                                        }}>
+                                          {r.correct ? "1" : "0"} / 1 pt
+                                        </span>
+                                      </div>
+                                      {q?.prompt && <p style={{ margin: "0 0 4px", fontSize: 13, color: "var(--text-primary)" }}>{q.prompt}</p>}
+                                      {r.feedback && <p className="result-q-feedback">{r.feedback}</p>}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })()}
 
-                            {showAnswerReview && results.map((r: any) => (
-                              <div key={r.question_id} className={`result-question-row ${r.correct ? "row-correct" : "row-wrong"}`}>
-                                <div className="result-q-indicator">{r.correct ? "✓" : "✗"}</div>
-                                <div className="result-q-body">
-                                  <p className="result-q-id">{r.question_id}</p>
-                                  {r.feedback && <p className="result-q-feedback">{r.feedback}</p>}
-                                </div>
-                              </div>
-                            ))}
-                          </>
+                        {/* Mastery goal prompt */}
+                        {reinforcementPhase === "none" && score < 80 && (
+                          <div style={{
+                            background: "rgba(99,102,241,0.12)", border: "1px solid rgba(99,102,241,0.3)",
+                            borderRadius: 10, padding: "12px 16px", marginBottom: 8,
+                          }}>
+                            <p style={{ margin: 0, fontSize: 13, color: "var(--text-primary)", fontWeight: 500 }}>
+                              {score < 45
+                                ? "You need 80%+ to reach mastery. Review the explanations above, then try again."
+                                : "Almost there — hit 80% to reach mastery. Practice the questions you missed."}
+                            </p>
+                          </div>
                         )}
 
                         {/* ── Reinforcement: launch button ── */}

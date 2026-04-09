@@ -13,3 +13,6 @@ def test_rag_query_with_sources(tmp_path):
     out = rag_service.query_collection_with_sources(collection_id="c1", question="sorted arrays", top_k=1, max_chars=500)
     assert "sorted" in out["context"].lower()
     assert out["sources"]
+    assert out["top_score"] > 0
+    assert out["num_hits"] >= 1
+    assert out["overlap_ratio"] > 0

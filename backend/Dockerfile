@@ -2,7 +2,8 @@ FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DEFAULT_TIMEOUT=180
 
 # System deps for Manim CE + LaTeX + rendering
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -29,9 +30,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 COPY requirements.txt /app/requirements.txt
-RUN pip install -r /app/requirements.txt
-COPY requirements.txt /app/requirements.txt
-RUN cat /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 RUN python -c "import groq; print('groq OK')"
 
